@@ -4,7 +4,7 @@ _Component to integrate with Fpl_
 
 Platform | Description
 -- | --
-`sensor` | Show info from blueprint API.
+`sensor` | Show info from Fpl data.
 
 
 ## Installation
