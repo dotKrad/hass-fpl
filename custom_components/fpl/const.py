@@ -3,7 +3,7 @@
 DOMAIN = "fpl"
 DOMAIN_DATA = f"{DOMAIN}_data"
 VERSION = "0.0.1"
-PLATFORMS = ["binary_sensor", "sensor", "switch"]
+PLATFORMS = ["sensor"]
 REQUIRED_FILES = [
     ".translations/en.json",
     "binary_sensor.py",
@@ -14,10 +14,10 @@ REQUIRED_FILES = [
     "switch.py",
 ]
 ISSUE_URL = "https://github.com/dotKrad/hass-fpl/issues"
-ATTRIBUTION = "Data from this is provided by blueprint."
+ATTRIBUTION = "Data from this is provided by FPL."
 
 # Icons
-ICON = "mdi:format-quote-close"
+ICON = "mdi:flash"
 
 # Device classes
 BINARY_SENSOR_DEVICE_CLASS = "connectivity"

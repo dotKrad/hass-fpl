@@ -4,11 +4,20 @@ import voluptuous as vol
 from .fplapi import FplApi
 from homeassistant import config_entries
 import aiohttp
-from .const import DOMAIN
+from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, CONF_NAME
+from homeassistant.core import callback
 
 
-@config_entries.HANDLERS.register(DOMAIN)
-class FplFlowHandler(config_entries.ConfigFlow):
+@callback
+def configured_instances(hass):
+    """Return a set of configured SimpliSafe instances."""
+    entites = []
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        entites.append(f"{entry.data.get(CONF_USERNAME)}")
+    return set(entites)
+
+
+class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
@@ -22,19 +31,27 @@ class FplFlowHandler(config_entries.ConfigFlow):
     ):  # pylint: disable=dangerous-default-value
         """Handle a flow initialized by the user."""
         self._errors = {}
-        if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
-        if self.hass.data.get(DOMAIN):
-            return self.async_abort(reason="single_instance_allowed")
+
+        # if self._async_current_entries():
+        #    return self.async_abort(reason="single_instance_allowed")
+        # if self.hass.data.get(DOMAIN):
+        #    return self.async_abort(reason="single_instance_allowed")
 
         if user_input is not None:
-            valid = await self._test_credentials(
-                user_input["username"], user_input["password"]
-            )
-            if valid:
-                return self.async_create_entry(title="", data=user_input)
+            username = user_input[CONF_USERNAME]
+            password = user_input[CONF_PASSWORD]
+
+            if username not in configured_instances(self.hass):
+                valid = await self._test_credentials(username, password)
+
+                if valid:
+                    return self.async_create_entry(
+                        title=user_input[CONF_NAME], data=user_input
+                    )
+                else:
+                    self._errors["base"] = "auth"
             else:
-                self._errors["base"] = "auth"
+                self._errors[CONF_NAME] = "name_exists"
 
             return await self._show_config_form(user_input)
 
@@ -46,35 +63,28 @@ class FplFlowHandler(config_entries.ConfigFlow):
         # Defaults
         username = ""
         password = ""
+        name = "Home"
 
         if user_input is not None:
-            if "username" in user_input:
-                username = user_input["username"]
-            if "password" in user_input:
-                password = user_input["password"]
+            if CONF_USERNAME in user_input:
+                username = user_input[CONF_USERNAME]
+            if CONF_PASSWORD in user_input:
+                password = user_input[CONF_PASSWORD]
+            if CONF_NAME in user_input:
+                name = user_input[CONF_NAME]
 
         data_schema = OrderedDict()
-        data_schema[vol.Required("username", default=username)] = str
-        data_schema[vol.Required("password", default=password)] = str
+        data_schema[vol.Required(CONF_NAME, default=name)] = str
+        data_schema[vol.Required(CONF_USERNAME, default=username)] = str
+        data_schema[vol.Required(CONF_PASSWORD, default=password)] = str
+
         return self.async_show_form(
             step_id="user", data_schema=vol.Schema(data_schema), errors=self._errors
         )
 
-    async def async_step_import(self, user_input):  # pylint: disable=unused-argument
-        """Import a config entry.
-        Special type of import, we're not actually going to store any data.
-        Instead, we're going to rely on the values that are in config file.
-        """
-        if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
-
-        return self.async_create_entry(title="configuration.yaml", data={})
-
     async def _test_credentials(self, username, password):
         """Return true if credentials is valid."""
         try:
-            # client = Client(username, password)
-            # client.get_data()
             session = aiohttp.ClientSession()
             api = FplApi(username, password, True, None, session)
             await api.login()

@@ -1,18 +1,20 @@
 {
     "config": {
-        "title": "Fpl",
+        "title": "Florida Power & Light",
         "step": {
             "user": {
                 "title": "Florida Power & Light",
-                "description": "If you need help with the configuration have a look here: https://github.com/custom-components/blueprint",
+                "description": "If you need help with the configuration have a look here: https://github.com/dotKrad/hass-fpl",
                 "data": {
+                    "name": "Name",
                     "username": "Username",
                     "password": "Password"
                 }
             }
         },
         "error": {
-            "auth": "Username/Password is wrong."
+            "auth": "Username/Password is wrong.",
+            "name_exists": "Configuration already exists."
         },
         "abort": {
             "single_instance_allowed": "Only a single configuration of Fpl is allowed."

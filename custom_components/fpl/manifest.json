@@ -1,7 +1,7 @@
 {
   "domain": "fpl",
   "name": "FPL",
-  "documentation": "https://github.com/custom-components/blueprint",
+  "documentation": "https://github.com/dotKrad/hass-fpl",
   "dependencies": [],
   "config_flow": true,
   "codeowners": [
