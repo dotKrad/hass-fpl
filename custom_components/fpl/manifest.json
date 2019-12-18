@@ -1,0 +1,15 @@
+{
+  "domain": "fpl",
+  "name": "FPL",
+  "documentation": "https://github.com/custom-components/blueprint",
+  "dependencies": [],
+  "config_flow": true,
+  "codeowners": [
+    "@dotKrad"
+  ],
+  "requirements": [
+    "bs4",
+    "integrationhelper"
+  ],
+  "homeassistant": "0.96.0"
+}
