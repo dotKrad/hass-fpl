@@ -4,7 +4,15 @@ import voluptuous as vol
 from .fplapi import FplApi
 from homeassistant import config_entries
 import aiohttp
-from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, CONF_NAME
+from .const import (
+    DOMAIN,
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    CONF_NAME,
+    LOGIN_RESULT_OK,
+    LOGIN_RESULT_INVALIDUSER,
+    LOGIN_RESULT_INVALIDPASSWORD,
+)
 from homeassistant.core import callback
 
 
@@ -26,30 +34,36 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize."""
         self._errors = {}
 
-    async def async_step_user(
-        self, user_input={}
-    ):  # pylint: disable=dangerous-default-value
+    async def async_step_user(self, user_input={}):  # pylint: disable=dangerous-default-value
         """Handle a flow initialized by the user."""
         self._errors = {}
 
-        # if self._async_current_entries():
-        #    return self.async_abort(reason="single_instance_allowed")
-        # if self.hass.data.get(DOMAIN):
-        #    return self.async_abort(reason="single_instance_allowed")
+        if self._async_current_entries():
+            return self.async_abort(reason="single_instance_allowed")
+        if self.hass.data.get(DOMAIN):
+            return self.async_abort(reason="single_instance_allowed")
 
         if user_input is not None:
             username = user_input[CONF_USERNAME]
             password = user_input[CONF_PASSWORD]
 
             if username not in configured_instances(self.hass):
-                valid = await self._test_credentials(username, password)
+                result = await self._test_credentials(username, password)
 
-                if valid:
+                if result == LOGIN_RESULT_OK:
                     return self.async_create_entry(
                         title=user_input[CONF_NAME], data=user_input
                     )
-                else:
+
+                if result == LOGIN_RESULT_INVALIDUSER:
+                    self._errors[CONF_USERNAME] = "invalid_username"
+
+                if result == LOGIN_RESULT_INVALIDPASSWORD:
+                    self._errors[CONF_PASSWORD] = "invalid_password"
+
+                if result == None:
                     self._errors["base"] = "auth"
+
             else:
                 self._errors[CONF_NAME] = "name_exists"
 
@@ -84,11 +98,12 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _test_credentials(self, username, password):
         """Return true if credentials is valid."""
+        session = aiohttp.ClientSession()
         try:
-            session = aiohttp.ClientSession()
-            api = FplApi(username, password, True, None, session)
-            await api.login()
-            return True
+            api = FplApi(username, password, None, session)
+            result = await api.login()
         except Exception:  # pylint: disable=broad-except
             pass
-        return False
+
+        await session.close()
+        return result
