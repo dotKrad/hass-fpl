@@ -14,7 +14,9 @@
         },
         "error": {
             "auth": "Username/Password is wrong.",
-            "name_exists": "Configuration already exists."
+            "name_exists": "Configuration already exists.",
+            "invalid_username": "Invalid Username",
+            "invalid_password": "Invalid Password"
         },
         "abort": {
             "single_instance_allowed": "Only a single configuration of Fpl is allowed."
