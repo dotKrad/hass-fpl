@@ -29,8 +29,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         if result == LOGIN_RESULT_OK:
             accounts = await api.async_get_open_accounts()
             for account in accounts:
-                async_add_entities(
-                    [FplSensor(hass, config_entry.data, account)])
+                async_add_entities([FplSensor(hass, config_entry.data, account)])
             pass
 
     except Exception:  # pylint: disable=broad-except
@@ -67,25 +66,16 @@ class FplSensor(Entity):
         return self._data["bill_to_date"]
 
     @property
+    def unit_of_measurement(self):
+        return ""
+
+    @property
     def icon(self):
         return ICON
 
     @property
     def state_attributes(self):
         return self._data
-        """
-        return {
-            "mtd_kwh": self._data["mtd_kwh"],
-            "bill_to_date": self._data["bill_to_date"],
-            "projected_bill": self._data["projected_bill"],
-            # "details": self._data["details"],
-            "start_date": self._data["start_date"],
-            "end_date": self._data["end_date"],
-            "service_days": self._data["service_days"],
-            "current_days": self._data["current_days"],
-            "remaining_days": self._data["remaining_days"],
-        }
-        """
 
     @util.Throttle(MIN_TIME_BETWEEN_SCANS, MIN_TIME_BETWEEN_UPDATES)
     async def async_update(self):
