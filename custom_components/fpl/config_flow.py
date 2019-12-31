@@ -34,9 +34,7 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize."""
         self._errors = {}
 
-    async def async_step_user(
-        self, user_input={}
-    ):  # pylint: disable=dangerous-default-value
+    async def async_step_user(self, user_input={}):  # pylint: disable=dangerous-default-value
         """Handle a flow initialized by the user."""
         self._errors = {}
 
@@ -102,7 +100,7 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Return true if credentials is valid."""
         session = aiohttp.ClientSession()
         try:
-            api = FplApi(username, password, True, None, session)
+            api = FplApi(username, password, None, session)
             result = await api.login()
         except Exception:  # pylint: disable=broad-except
             pass

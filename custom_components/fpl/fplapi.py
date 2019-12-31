@@ -9,10 +9,15 @@ import json
 
 
 from bs4 import BeautifulSoup
-from const import STATUS_CATEGORY_OPEN, LOGIN_RESULT_OK
+from .const import STATUS_CATEGORY_OPEN, LOGIN_RESULT_OK
 
 _LOGGER = logging.getLogger(__name__)
 TIMEOUT = 5
+
+URL_LOGIN = "https://www.fpl.com/api/resources/login"
+URL_RESOURCES_HEADER = "https://www.fpl.com/api/resources/header"
+URL_RESOURCES_ACCOUNT = "https://www.fpl.com/api/resources/account/{account}"
+URL_RESOURCES_PROJECTED_BILL = "https://www.fpl.com/api/resources/account/{account}/projectedBill?premiseNumber={premise}&lastBilledDate={lastBillDate}"
 
 
 class FplApi(object):
@@ -25,13 +30,49 @@ class FplApi(object):
         self._loop = loop
         self._session = session
 
+    async def async_get_mtd_usage(self):
+        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            response = await self._session.get(
+                "https://app.fpl.com/wps/myportal/EsfPortal"
+            )
+
+        soup = BeautifulSoup(await response.text(), "html.parser")
+
+        self.mtd_kwh = (
+            soup.find(id="bpbsubcontainer")
+            .find("table", class_="bpbtab_style_bill", width=430)
+            .find_all("div", class_="bpbtabletxt")[-1]
+            .string
+        )
+
+        self.mtd_dollars = (
+            soup.find_all("div", class_="bpbusagebgnd")[1]
+            .find("div", class_="bpbusagedollartxt")
+            .getText()
+            .strip()
+            .replace("$", "")
+        )
+
+        self.projected_bill = (
+            soup.find(id="bpssmlsubcontainer")
+            .find("div", class_="bpsmonthbillbgnd")
+            .find("div", class_="bpsmnthbilldollartxt")
+            .getText()
+            .strip()
+            .replace("$", "")
+        )
+
+        test = soup.find(
+            class_="bpsusagesmlmnthtxt").getText().strip().split(" - ")
+        self.start_period = test[0]
+        self.end_period = test[1]
+
+
+
     async def login(self):
         """login and get account information"""
         async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-            response = await self._session.get(
-                "https://www.fpl.com/api/resources/login",
-                auth=aiohttp.BasicAuth(self._username, self._password),
-            )
+            response = await self._session.get(URL_LOGIN, auth=aiohttp.BasicAuth(self._username, self._password))
 
         js = json.loads(await response.text())
 
@@ -45,9 +86,8 @@ class FplApi(object):
 
     async def async_get_open_accounts(self):
         async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-            response = await self._session.get(
-                "https://www.fpl.com/api/resources/header"
-            )
+            response = await self._session.get(URL_RESOURCES_HEADER)
+
         js = await response.json()
         accounts = js["data"]["accounts"]["data"]["data"]
 
@@ -56,51 +96,67 @@ class FplApi(object):
         for account in accounts:
             if account["statusCategory"] == STATUS_CATEGORY_OPEN:
                 result.append(account["accountNumber"])
-                # print(account["accountNumber"])
-                # print(account["premiseNumber"])
-                # print(account["statusCategory"])
+            # print(account["accountNumber"])
+            # print(account["premiseNumber"])
+            # print(account["statusCategory"])
 
         # self._account_number = js["data"]["selectedAccount"]["data"]["accountNumber"]
         # self._premise_number = js["data"]["selectedAccount"]["data"]["acctSecSettings"]["premiseNumber"]
         return result
 
     async def async_get_data(self, account):
-        # await self.async_get_yesterday_usage()
-        # await self.async_get_mtd_usage()
+
+        data = {}
+
         async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-            response = await self._session.get(
-                "https://www.fpl.com/api/resources/account/" + account
-            )
-        data = (await response.json())["data"]
+            response = await self._session.get(URL_RESOURCES_ACCOUNT.format(account=account))
+        accountData = (await response.json())["data"]
 
-        premise = data["premiseNumber"].zfill(9)
-        print(premise)
+        premise = accountData["premiseNumber"].zfill(9)
 
-        # print(data["nextBillDate"].replace("-", "").split("T")[0])
-        # print(data["currentBillDate"].replace("-", "").split("T")[0])
+        # currentBillDate
+        currentBillDate = datetime.strptime(
+            accountData["currentBillDate"].replace(
+                "-", "").split("T")[0], "%Y%m%d"
+        ).date()
 
-        start_date = datetime.strptime(
-            data["currentBillDate"].replace("-", "").split("T")[0], "%Y%m%d").date()
-        end_date = dt.today()
+        # nextBillDate
+        nextBillDate = datetime.strptime(
+            accountData["nextBillDate"].replace(
+                "-", "").split("T")[0], "%Y%m%d"
+        ).date()
 
-        last_day = datetime.strptime(
-            data["nextBillDate"].replace("-", "").split("T")[0], "%Y%m%d").date()
+        # zip code
+        zip_code = accountData["serviceAddress"]["zip"]
 
-        lasting_days = (last_day - dt.today()).days
-        zip_code = data["serviceAddress"]["zip"]
+        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            response = await self._session.get(URL_RESOURCES_PROJECTED_BILL.format(
+                account=account,
+                premise=premise,
+                lastBillDate=currentBillDate.strftime("%m%d%Y")
+            ))
+
+        projectedBillData = (await response.json())["data"]
+
+        serviceDays = int(projectedBillData["serviceDays"])
+        billToDate = float(projectedBillData["billToDate"])
+        projectedBill = float(projectedBillData["projectedBill"])
+        asOfDays = int(projectedBillData["asOfDays"])
+        dailyAvg = float(projectedBillData["dailyAvg"])
+        avgHighTemp = int(projectedBillData["avgHighTemp"])
 
         url = (
             "https://app.fpl.com/wps/PA_ESFPortalWeb/getDailyConsumption"
             f"?premiseNumber={premise}"
-            f"&startDate={start_date.strftime('%Y%m%d')}"
-            f"&endDate={end_date.strftime('%Y%m%d')}"
+            f"&startDate={currentBillDate.strftime('%Y%m%d')}"
+            f"&endDate={dt.today().strftime('%Y%m%d')}"
             f"&accountNumber={account}"
             # "&accountType=ELE"
             f"&zipCode={zip_code}"
             "&consumption=0.0"
             "&usage=0.0"
             "&isMultiMeter=false"
-            f"&lastAvailableDate={end_date}"
+            f"&lastAvailableDate={dt.today()}"
             # "&isAmiMeter=true"
             "&userType=EXT"
             # "&currentReading=64359"
@@ -161,133 +217,26 @@ class FplApi(object):
                 days += 1
 
                 day_detail = {}
-                day_detail["date"] = date
+                day_detail["date"] = str(date)
                 day_detail["usage"] = usage
                 day_detail["cost"] = cost
                 day_detail["max_temperature"] = max_temp
 
                 details.append(day_detail)
 
-                print(date)
-                print(usage)
-                print(cost)
-                print(max_temp)
-
-        print("TOTALS")
-        print(total_kw)
-        print(total_cost)
-
-        print("Average")
-        avg_cost = round(total_cost / days, 2)
-        print(avg_cost)
+        remaining_days = serviceDays - asOfDays
         avg_kw = round(total_kw / days, 0)
-        print(avg_kw)
 
-        print("Projected")
-        projected_cost = round(total_cost + avg_cost * lasting_days, 2)
-        print(projected_cost)
-
-        data = {}
-        data["start_date"] = start_date
-        data["end_date"] = end_date
-        data["service_days"] = (end_date - start_date).days
-        data["current_days"] = days
-        data["remaining_days"] = lasting_days
-        data["details"] = details
+        data["current_bill_date"] = str(currentBillDate)
+        data["next_bill_date"] = str(nextBillDate)
+        data["service_days"] = serviceDays
+        data["bill_to_date"] = billToDate
+        data["projected_bill"] = projectedBill
+        data["as_of_days"] = asOfDays
+        data["daily_avg"] = dailyAvg
+        data["avg_high_temp"] = avgHighTemp
+        data["remaining_days"] = remaining_days
+        data["mtd_kwh"] = total_kw
+        data["average_kwh"] = avg_kw
 
         return data
-        pass
-
-    async def async_get_yesterday_usage(self):
-        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-            url = self._build_daily_url()
-            response = await self._session.get(url)
-
-        _LOGGER.debug("Response from API: %s", response.status)
-
-        if response.status != 200:
-            self.data = None
-            return
-
-        malformedXML = await response.read()
-
-        cleanerXML = (
-            str(malformedXML)
-            .replace('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', "", 1)
-            .split("<ARG>@@", 1)[0]
-        )
-
-        soup = BeautifulSoup(cleanerXML, "html.parser")
-
-        tool_text = soup.find("dataset", seriesname="$").find("set")[
-            "tooltext"]
-
-        match = re.search(r"\{br\}kWh Usage: (.*?) kWh \{br\}", tool_text)
-        if match:
-            self.yesterday_kwh = match.group(1).replace("$", "")
-
-        match2 = re.search(r"\{br\}Approx\. Cost: (\$.*?) \{br\}", tool_text)
-        if match2:
-            self.yesterday_dollars = match2.group(1).replace("$", "")
-
-    async def async_get_mtd_usage(self):
-        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-            response = await self._session.get(
-                "https://app.fpl.com/wps/myportal/EsfPortal"
-            )
-
-        soup = BeautifulSoup(await response.text(), "html.parser")
-
-        self.mtd_kwh = (
-            soup.find(id="bpbsubcontainer")
-            .find("table", class_="bpbtab_style_bill", width=430)
-            .find_all("div", class_="bpbtabletxt")[-1]
-            .string
-        )
-
-        self.mtd_dollars = (
-            soup.find_all("div", class_="bpbusagebgnd")[1]
-            .find("div", class_="bpbusagedollartxt")
-            .getText()
-            .strip()
-            .replace("$", "")
-        )
-
-        self.projected_bill = (
-            soup.find(id="bpssmlsubcontainer")
-            .find("div", class_="bpsmonthbillbgnd")
-            .find("div", class_="bpsmnthbilldollartxt")
-            .getText()
-            .strip()
-            .replace("$", "")
-        )
-
-        test = soup.find(
-            class_="bpsusagesmlmnthtxt").getText().strip().split(" - ")
-        self.start_period = test[0]
-        self.end_period = test[1]
-
-    def _build_daily_url(self):
-        end_date = dt.today()
-        start_date = end_date - timedelta(days=1)
-
-        return (
-            "https://app.fpl.com/wps/PA_ESFPortalWeb/getDailyConsumption"
-            "?premiseNumber={premise_number}"
-            "&accountNumber={account_number}"
-            "&isTouUser={is_tou}"
-            "&startDate={start_date}"
-            "&endDate={end_date}"
-            "&userType=EXT"
-            "&isResidential=true"
-            "&certifiedDate=2000/01/01"
-            "&viewType=dollar"
-            "&tempType=max"
-            "&ecDayHumType=NoHum"
-        ).format(
-            premise_number=self._premise_number,
-            account_number=self._account_number,
-            is_tou=str(self._is_tou),
-            start_date=start_date.strftime("%Y%m%d"),
-            end_date=end_date.strftime("%Y%m%d"),
-        )
