@@ -67,7 +67,7 @@ class FplSensor(Entity):
 
     @property
     def unit_of_measurement(self):
-        return ""
+        return " "
 
     @property
     def icon(self):
