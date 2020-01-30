@@ -52,10 +52,10 @@ class FplSensor(Entity):
     async def async_added_to_hass(self):
         await self.async_update()
 
-    @property
-    def unique_id(self):
-        """Return the ID of this device."""
-        return "{}{}".format(self._account, hash(self._account))
+    #@property
+    #def unique_id(self):
+    #    """Return the ID of this device."""
+    #    return "{}{}".format(self._account, hash(self._account))
 
     @property
     def name(self):
