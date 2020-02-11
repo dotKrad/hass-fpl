@@ -9,8 +9,8 @@ from homeassistant import util
 from homeassistant.const import CONF_NAME, EVENT_CORE_CONFIG_UPDATE
 from .const import DOMAIN, ICON, LOGIN_RESULT_OK
 
-MIN_TIME_BETWEEN_SCANS = timedelta(minutes=1440)
-MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=1440)
+MIN_TIME_BETWEEN_SCANS = timedelta(minutes=30)
+MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=60)
 
 
 def setup(hass, config):
