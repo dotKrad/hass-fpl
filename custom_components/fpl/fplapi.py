@@ -205,7 +205,8 @@ class FplApi(object):
                 str(item),
             )
             if match:
-                date = datetime.strptime(match.group(1), "%b. %d, %Y").date()
+                g1 = match.group(1).replace(".", "")
+                date = datetime.strptime(g1, "%b %d, %Y").date()
                 usage = int(match.group(2))
                 cost = float(match.group(3))
                 max_temp = int(match.group(4))
@@ -238,5 +239,6 @@ class FplApi(object):
         data["remaining_days"] = remaining_days
         data["mtd_kwh"] = total_kw
         data["average_kwh"] = avg_kw
+        data["details"] = details
 
         return data
