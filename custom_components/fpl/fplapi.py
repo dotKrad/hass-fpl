@@ -145,85 +145,91 @@ class FplApi(object):
         dailyAvg = float(projectedBillData["dailyAvg"])
         avgHighTemp = int(projectedBillData["avgHighTemp"])
 
-        url = (
-            "https://app.fpl.com/wps/PA_ESFPortalWeb/getDailyConsumption"
-            f"?premiseNumber={premise}"
-            f"&startDate={currentBillDate.strftime('%Y%m%d')}"
-            f"&endDate={dt.today().strftime('%Y%m%d')}"
-            f"&accountNumber={account}"
-            # "&accountType=ELE"
-            f"&zipCode={zip_code}"
-            "&consumption=0.0"
-            "&usage=0.0"
-            "&isMultiMeter=false"
-            f"&lastAvailableDate={dt.today()}"
-            # "&isAmiMeter=true"
-            "&userType=EXT"
-            # "&currentReading=64359"
-            "&isResidential=true"
-            # "&isTouUser=false"
-            "&showGroupData=false"
-            # "&isNetMeter=false"
-            "&certifiedDate=1900/01/01"
-            # "&acctNetMeter=false"
-            "&tempType=max"
-            "&viewType=dollar"
-            "&ecDayHumType=NoHum"
-            # "&ecHasMoveInRate=false"
-            # "&ecMoveInRateVal="
-            # "&lastAvailableIeeDate=20191230"
-        )
+        try:
 
-        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-            response = await self._session.get(url)
-
-        if response.status != 200:
-            self.data = None
-            return
-
-        malformedXML = await response.read()
-
-        cleanerXML = (
-            str(malformedXML)
-            .replace('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', "", 1)
-            .split("<ARG>@@", 1)[0]
-        )
-
-        total_kw = 0
-        total_cost = 0
-        days = 0
-
-        soup = BeautifulSoup(cleanerXML, "html.parser")
-        items = soup.find("dataset", seriesname="$").find_all("set")
-
-        details = []
-
-        for item in items:
-            # <set color="E99356" link="j-hourlyJs-001955543,2019/12/29T00:00:00,2019/12/29T00:00:00,8142998577,residential,null,20191206,20200108" tooltext="Day/Date: Dec. 29, 2019 {br}kWh Usage: 42 kWh {br}Approx. Cost: $4.42 {br}Daily High Temp:  \xc2\xb0F " value="4.42"></set>
-            match = re.search(
-                r"Date: (\w\w\w. \d\d, \d\d\d\d).*\{br\}kWh Usage: (.*?) kWh \{br\}.*Cost:\s\$([\w|.]+).*Temp:\s(\d+)",
-                str(item),
+            url = (
+                "https://app.fpl.com/wps/PA_ESFPortalWeb/getDailyConsumption"
+                f"?premiseNumber={premise}"
+                f"&startDate={currentBillDate.strftime('%Y%m%d')}"
+                f"&endDate={dt.today().strftime('%Y%m%d')}"
+                f"&accountNumber={account}"
+                # "&accountType=ELE"
+                f"&zipCode={zip_code}"
+                "&consumption=0.0"
+                "&usage=0.0"
+                "&isMultiMeter=false"
+                f"&lastAvailableDate={dt.today()}"
+                # "&isAmiMeter=true"
+                "&userType=EXT"
+                # "&currentReading=64359"
+                "&isResidential=true"
+                # "&isTouUser=false"
+                "&showGroupData=false"
+                # "&isNetMeter=false"
+                "&certifiedDate=1900/01/01"
+                # "&acctNetMeter=false"
+                "&tempType=max"
+                "&viewType=dollar"
+                "&ecDayHumType=NoHum"
+                # "&ecHasMoveInRate=false"
+                # "&ecMoveInRateVal="
+                # "&lastAvailableIeeDate=20191230"
             )
-            if match:
-                g1 = match.group(1).replace(".", "")
-                date = datetime.strptime(g1, "%b %d, %Y").date()
-                usage = int(match.group(2))
-                cost = float(match.group(3))
-                max_temp = int(match.group(4))
-                if usage == 0:
-                    cost = 0
 
-                total_kw += usage
-                total_cost += cost
-                days += 1
+            async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+                response = await self._session.get(url)
 
-                day_detail = {}
-                day_detail["date"] = str(date)
-                day_detail["usage"] = usage
-                day_detail["cost"] = cost
-                day_detail["max_temperature"] = max_temp
+            if response.status != 200:
+                self.data = None
+                return
 
-                details.append(day_detail)
+            malformedXML = await response.read()
+
+            cleanerXML = (
+                str(malformedXML)
+                .replace('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', "", 1)
+                .split("<ARG>@@", 1)[0]
+            )
+
+            total_kw = 0
+            total_cost = 0
+            days = 0
+
+            soup = BeautifulSoup(cleanerXML, "html.parser")
+            items = soup.find("dataset", seriesname="$").find_all("set")
+
+            details = []
+
+            for item in items:
+                # <set color="E99356" link="j-hourlyJs-001955543,2019/12/29T00:00:00,2019/12/29T00:00:00,8142998577,residential,null,20191206,20200108" tooltext="Day/Date: Dec. 29, 2019 {br}kWh Usage: 42 kWh {br}Approx. Cost: $4.42 {br}Daily High Temp:  \xc2\xb0F " value="4.42"></set>
+                match = re.search(
+                    r"Date: (\w\w\w. \d\d, \d\d\d\d).*\{br\}kWh Usage: (.*?) kWh \{br\}.*Cost:\s\$([\w|.]+).*Temp:\s(\d+)",
+                    str(item),
+                )
+                if match:
+                    g1 = match.group(1).replace(".", "")
+                    date = datetime.strptime(g1, "%b %d, %Y").date()
+                    usage = int(match.group(2))
+                    cost = float(match.group(3))
+                    max_temp = int(match.group(4))
+                    if usage == 0:
+                        cost = 0
+
+                    total_kw += usage
+                    total_cost += cost
+                    days += 1
+
+                    day_detail = {}
+                    day_detail["date"] = str(date)
+                    day_detail["usage"] = usage
+                    day_detail["cost"] = cost
+                    day_detail["max_temperature"] = max_temp
+
+                    details.append(day_detail)
+
+            data["details"] = details
+        except:
+            data["details"] = []
 
         remaining_days = serviceDays - asOfDays
         avg_kw = round(total_kw / days, 0)
@@ -239,6 +245,6 @@ class FplApi(object):
         data["remaining_days"] = remaining_days
         data["mtd_kwh"] = total_kw
         data["average_kwh"] = avg_kw
-        data["details"] = details
+        
 
         return data
