@@ -7,7 +7,7 @@
                 "description": "If you need help with the configuration have a look here: https://github.com/dotKrad/hass-fpl",
                 "data": {
                     "name": "Name",
-                    "username": "Username",
+                    "username": "Email",
                     "password": "Password"
                 }
             }
@@ -15,7 +15,7 @@
         "error": {
             "auth": "Username/Password is wrong.",
             "name_exists": "Configuration already exists.",
-            "invalid_username": "Invalid Username",
+            "invalid_username": "Invalid Email",
             "invalid_password": "Invalid Password"
         },
         "abort": {
