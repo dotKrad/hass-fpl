@@ -6,7 +6,7 @@ import asyncio
 from homeassistant.helpers.entity import Entity
 from homeassistant import util
 
-from homeassistant.const import CONF_NAME, EVENT_CORE_CONFIG_UPDATE
+from homeassistant.const import CONF_NAME, EVENT_CORE_CONFIG_UPDATE, STATE_UNKNOWN
 from .const import DOMAIN, ICON, LOGIN_RESULT_OK
 
 MIN_TIME_BETWEEN_SCANS = timedelta(minutes=30)
@@ -43,7 +43,7 @@ class FplSensor(Entity):
         self._config = config
         self.username = config.get(const.CONF_USERNAME)
         self.password = config.get(const.CONF_PASSWORD)
-        self._state = 0
+        self._state = const.STATE_UNKNOWN
         self.loop = hass.loop
 
         self._account = account
@@ -52,8 +52,8 @@ class FplSensor(Entity):
     async def async_added_to_hass(self):
         await self.async_update()
 
-    #@property
-    #def unique_id(self):
+    # @property
+    # def unique_id(self):
     #    """Return the ID of this device."""
     #    return "{}{}".format(self._account, hash(self._account))
 
@@ -63,7 +63,7 @@ class FplSensor(Entity):
 
     @property
     def state(self):
-        return self._data["bill_to_date"]
+        return self._state  #
 
     @property
     def unit_of_measurement(self):
@@ -79,12 +79,14 @@ class FplSensor(Entity):
 
     @util.Throttle(MIN_TIME_BETWEEN_SCANS, MIN_TIME_BETWEEN_UPDATES)
     async def async_update(self):
+        self._state = const.STATE_UNKNOWN
+        self._data = None
         session = aiohttp.ClientSession()
         try:
             api = FplApi(self.username, self.password, self.loop, session)
             await api.login()
             self._data = await api.async_get_data(self._account)
-
+            self._state = self._data["bill_to_date"]
         except Exception:  # pylint: disable=broad-except
             pass
 
