@@ -1,4 +1,4 @@
-from homeassistant import const
+import logging
 from datetime import datetime, timedelta
 from .fplapi import FplApi
 import aiohttp
@@ -6,8 +6,17 @@ import asyncio
 from homeassistant.helpers.entity import Entity
 from homeassistant import util
 
-from homeassistant.const import CONF_NAME, EVENT_CORE_CONFIG_UPDATE, STATE_UNKNOWN
+from homeassistant.const import (
+    CONF_NAME,
+    EVENT_CORE_CONFIG_UPDATE,
+    STATE_UNKNOWN,
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    STATE_UNKNOWN,
+)
 from .const import DOMAIN, ICON, LOGIN_RESULT_OK
+
+_LOGGER = logging.getLogger(__name__)
 
 MIN_TIME_BETWEEN_SCANS = timedelta(minutes=30)
 MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=60)
@@ -18,19 +27,23 @@ def setup(hass, config):
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    username = config_entry.data.get(const.CONF_USERNAME)
-    password = config_entry.data.get(const.CONF_PASSWORD)
+    username = config_entry.data.get(CONF_USERNAME)
+    password = config_entry.data.get(CONF_PASSWORD)
 
     session = aiohttp.ClientSession()
     try:
         api = FplApi(username, password, hass.loop, session)
         result = await api.login()
 
+        fpl_accounts = []
+
         if result == LOGIN_RESULT_OK:
             accounts = await api.async_get_open_accounts()
             for account in accounts:
-                async_add_entities([FplSensor(hass, config_entry.data, account)])
-            pass
+                _LOGGER.info(f"Adding fpl account: {account}")
+                fpl_accounts.append(FplSensor(hass, config_entry.data, account))
+
+            async_add_entities(fpl_accounts)
 
     except Exception:  # pylint: disable=broad-except
         pass
@@ -41,9 +54,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class FplSensor(Entity):
     def __init__(self, hass, config, account):
         self._config = config
-        self.username = config.get(const.CONF_USERNAME)
-        self.password = config.get(const.CONF_PASSWORD)
-        self._state = const.STATE_UNKNOWN
+        self.username = config.get(CONF_USERNAME)
+        self.password = config.get(CONF_PASSWORD)
+        _LOGGER.info(f"Using: {self.username}")
+        self._state = STATE_UNKNOWN
         self.loop = hass.loop
 
         self._account = account
@@ -52,10 +66,10 @@ class FplSensor(Entity):
     async def async_added_to_hass(self):
         await self.async_update()
 
-    # @property
-    # def unique_id(self):
-    #    """Return the ID of this device."""
-    #    return "{}{}".format(self._account, hash(self._account))
+    @property
+    def unique_id(self):
+        """Return the ID of this device."""
+        return "{}{}".format(DOMAIN, self._account)
 
     @property
     def name(self):
@@ -79,7 +93,7 @@ class FplSensor(Entity):
 
     @util.Throttle(MIN_TIME_BETWEEN_SCANS, MIN_TIME_BETWEEN_UPDATES)
     async def async_update(self):
-        self._state = const.STATE_UNKNOWN
+        self._state = STATE_UNKNOWN
         self._data = None
         session = aiohttp.ClientSession()
         try:
