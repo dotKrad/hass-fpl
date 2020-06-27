@@ -56,7 +56,6 @@ class FplSensor(Entity):
         self._config = config
         self.username = config.get(CONF_USERNAME)
         self.password = config.get(CONF_PASSWORD)
-        _LOGGER.info(f"Using: {self.username}")
         self._state = STATE_UNKNOWN
         self.loop = hass.loop
 
@@ -70,7 +69,6 @@ class FplSensor(Entity):
     def unique_id(self):
         """Return the ID of this device."""
         id = "{}{}".format(DOMAIN, self._account)
-        _LOGGER.info(f"ID: {id}")
         return id
 
     @property
@@ -102,7 +100,10 @@ class FplSensor(Entity):
             api = FplApi(self.username, self.password, self.loop, session)
             await api.login()
             self._data = await api.async_get_data(self._account)
-            self._state = self._data["bill_to_date"]
+            if self._data["budget_bill"]:
+                self._state = self._data["projected_budget_bill"]
+            else:
+                self._state = self._data["projected_bill"]
         except Exception:  # pylint: disable=broad-except
             pass
 

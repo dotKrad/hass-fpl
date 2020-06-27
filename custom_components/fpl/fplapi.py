@@ -19,6 +19,9 @@ URL_RESOURCES_HEADER = "https://www.fpl.com/api/resources/header"
 URL_RESOURCES_ACCOUNT = "https://www.fpl.com/api/resources/account/{account}"
 URL_RESOURCES_PROJECTED_BILL = "https://www.fpl.com/api/resources/account/{account}/projectedBill?premiseNumber={premise}&lastBilledDate={lastBillDate}"
 
+ENROLLED = "ENROLLED"
+NOTENROLLED = "NOTENROLLED"
+
 
 class FplApi(object):
     """A class for getting energy usage information from Florida Power & Light."""
@@ -28,51 +31,15 @@ class FplApi(object):
         self._username = username
         self._password = password
         self._loop = loop
-        self._session = session
-
-    async def async_get_mtd_usage(self):
-        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-            response = await self._session.get(
-                "https://app.fpl.com/wps/myportal/EsfPortal"
-            )
-
-        soup = BeautifulSoup(await response.text(), "html.parser")
-
-        self.mtd_kwh = (
-            soup.find(id="bpbsubcontainer")
-            .find("table", class_="bpbtab_style_bill", width=430)
-            .find_all("div", class_="bpbtabletxt")[-1]
-            .string
-        )
-
-        self.mtd_dollars = (
-            soup.find_all("div", class_="bpbusagebgnd")[1]
-            .find("div", class_="bpbusagedollartxt")
-            .getText()
-            .strip()
-            .replace("$", "")
-        )
-
-        self.projected_bill = (
-            soup.find(id="bpssmlsubcontainer")
-            .find("div", class_="bpsmonthbillbgnd")
-            .find("div", class_="bpsmnthbilldollartxt")
-            .getText()
-            .strip()
-            .replace("$", "")
-        )
-
-        test = soup.find(
-            class_="bpsusagesmlmnthtxt").getText().strip().split(" - ")
-        self.start_period = test[0]
-        self.end_period = test[1]
-
-
+        self._session = session    
 
     async def login(self):
+        _LOGGER.info("Logging")
         """login and get account information"""
         async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-            response = await self._session.get(URL_LOGIN, auth=aiohttp.BasicAuth(self._username, self._password))
+            response = await self._session.get(
+                URL_LOGIN, auth=aiohttp.BasicAuth(self._username, self._password)
+            )
 
         js = json.loads(await response.text())
 
@@ -80,11 +47,14 @@ class FplApi(object):
             return js["messageCode"]
 
         if js["messages"][0]["messageCode"] != "login.success":
+            _LOGGER.error(f"Logging Failure")
             raise Exception("login failure")
 
+        _LOGGER.info(f"Logging Successful")
         return LOGIN_RESULT_OK
 
     async def async_get_open_accounts(self):
+        _LOGGER.info(f"Getting accounts")
         async with async_timeout.timeout(TIMEOUT, loop=self._loop):
             response = await self._session.get(URL_RESOURCES_HEADER)
 
@@ -95,156 +65,177 @@ class FplApi(object):
 
         for account in accounts:
             if account["statusCategory"] == STATUS_CATEGORY_OPEN:
-                result.append(account["accountNumber"])
-            # print(account["accountNumber"])
-            # print(account["premiseNumber"])
-            # print(account["statusCategory"])
+                result.append(account["accountNumber"])            
 
         # self._account_number = js["data"]["selectedAccount"]["data"]["accountNumber"]
         # self._premise_number = js["data"]["selectedAccount"]["data"]["acctSecSettings"]["premiseNumber"]
         return result
 
     async def async_get_data(self, account):
-
+        _LOGGER.info(f"Getting Data")
         data = {}
 
         async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-            response = await self._session.get(URL_RESOURCES_ACCOUNT.format(account=account))
+            response = await self._session.get(
+                URL_RESOURCES_ACCOUNT.format(account=account)
+            )
         accountData = (await response.json())["data"]
 
         premise = accountData["premiseNumber"].zfill(9)
 
         # currentBillDate
         currentBillDate = datetime.strptime(
-            accountData["currentBillDate"].replace(
-                "-", "").split("T")[0], "%Y%m%d"
+            accountData["currentBillDate"].replace("-", "").split("T")[0], "%Y%m%d"
         ).date()
 
         # nextBillDate
         nextBillDate = datetime.strptime(
-            accountData["nextBillDate"].replace(
-                "-", "").split("T")[0], "%Y%m%d"
+            accountData["nextBillDate"].replace("-", "").split("T")[0], "%Y%m%d"
         ).date()
+
+        data["current_bill_date"] = str(currentBillDate)
+        data["next_bill_date"] = str(nextBillDate)
+
+        today = datetime.now().date()
+        remaining = (nextBillDate - today).days
+        days = (today - currentBillDate).days
+
+        data["service_days"] = (nextBillDate - currentBillDate).days
+        data["as_of_days"] = days
+        data["remaining_days"] = remaining
 
         # zip code
         zip_code = accountData["serviceAddress"]["zip"]
 
-        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-            response = await self._session.get(URL_RESOURCES_PROJECTED_BILL.format(
-                account=account,
-                premise=premise,
-                lastBillDate=currentBillDate.strftime("%m%d%Y")
-            ))
+        # projected bill
+        pbData = await self.getFromProjectedBill(account, premise, currentBillDate)
+        data.update(pbData)
 
-        projectedBillData = (await response.json())["data"]
+        # programs
+        programsData = accountData["programs"]["data"]
 
-        serviceDays = int(projectedBillData["serviceDays"])
-        billToDate = float(projectedBillData["billToDate"])
-        projectedBill = float(projectedBillData["projectedBill"])
-        asOfDays = int(projectedBillData["asOfDays"])
-        dailyAvg = float(projectedBillData["dailyAvg"])
-        avgHighTemp = int(projectedBillData["avgHighTemp"])
+        programs = dict()
+        _LOGGER.info(f"Getting Programs")
+        for program in programsData:
+            if "enrollmentStatus" in program.keys():
+                key = program["name"]
+                _LOGGER.info(f"{key} : {program['enrollmentStatus']}")
+                programs[key] = program["enrollmentStatus"] == ENROLLED
 
-        try:
+        if programs["BBL"]:
+            # budget billing
+            data["budget_bill"] = True
+            bblData = await self.getBBL_async(account)
+            data.update(bblData)
 
-            url = (
-                "https://app.fpl.com/wps/PA_ESFPortalWeb/getDailyConsumption"
-                f"?premiseNumber={premise}"
-                f"&startDate={currentBillDate.strftime('%Y%m%d')}"
-                f"&endDate={dt.today().strftime('%Y%m%d')}"
-                f"&accountNumber={account}"
-                # "&accountType=ELE"
-                f"&zipCode={zip_code}"
-                "&consumption=0.0"
-                "&usage=0.0"
-                "&isMultiMeter=false"
-                f"&lastAvailableDate={dt.today()}"
-                # "&isAmiMeter=true"
-                "&userType=EXT"
-                # "&currentReading=64359"
-                "&isResidential=true"
-                # "&isTouUser=false"
-                "&showGroupData=false"
-                # "&isNetMeter=false"
-                "&certifiedDate=1900/01/01"
-                # "&acctNetMeter=false"
-                "&tempType=max"
-                "&viewType=dollar"
-                "&ecDayHumType=NoHum"
-                # "&ecHasMoveInRate=false"
-                # "&ecMoveInRateVal="
-                # "&lastAvailableIeeDate=20191230"
-            )
+        data.update(
+            await self.getDataFromEnergyService(account, premise, currentBillDate)
+        )
 
-            async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-                response = await self._session.get(url)
-
-            if response.status != 200:
-                self.data = None
-                return
-
-            malformedXML = await response.read()
-
-            cleanerXML = (
-                str(malformedXML)
-                .replace('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', "", 1)
-                .split("<ARG>@@", 1)[0]
-            )
-
-            total_kw = 0
-            total_cost = 0
-            days = 0
-
-            soup = BeautifulSoup(cleanerXML, "html.parser")
-            items = soup.find("dataset", seriesname="$").find_all("set")
-
-            details = []
-
-            for item in items:
-                # <set color="E99356" link="j-hourlyJs-001955543,2019/12/29T00:00:00,2019/12/29T00:00:00,8142998577,residential,null,20191206,20200108" tooltext="Day/Date: Dec. 29, 2019 {br}kWh Usage: 42 kWh {br}Approx. Cost: $4.42 {br}Daily High Temp:  \xc2\xb0F " value="4.42"></set>
-                match = re.search(
-                    r"Date: (\w\w\w. \d\d, \d\d\d\d).*\{br\}kWh Usage: (.*?) kWh \{br\}.*Cost:\s\$([\w|.]+).*Temp:\s(\d+)",
-                    str(item),
-                )
-                if match:
-                    g1 = match.group(1).replace(".", "")
-                    date = datetime.strptime(g1, "%b %d, %Y").date()
-                    usage = int(match.group(2))
-                    cost = float(match.group(3))
-                    max_temp = int(match.group(4))
-                    if usage == 0:
-                        cost = 0
-
-                    total_kw += usage
-                    total_cost += cost
-                    days += 1
-
-                    day_detail = {}
-                    day_detail["date"] = str(date)
-                    day_detail["usage"] = usage
-                    day_detail["cost"] = cost
-                    day_detail["max_temperature"] = max_temp
-
-                    details.append(day_detail)
-
-            data["details"] = details
-        except:
-            data["details"] = []
-
-        remaining_days = serviceDays - asOfDays
-        avg_kw = round(total_kw / days, 0)
-
-        data["current_bill_date"] = str(currentBillDate)
-        data["next_bill_date"] = str(nextBillDate)
-        data["service_days"] = serviceDays
-        data["bill_to_date"] = billToDate
-        data["projected_bill"] = projectedBill
-        data["as_of_days"] = asOfDays
-        data["daily_avg"] = dailyAvg
-        data["avg_high_temp"] = avgHighTemp
-        data["remaining_days"] = remaining_days
-        data["mtd_kwh"] = total_kw
-        data["average_kwh"] = avg_kw
-        
-
+        data.update(await self.getDataFromApplianceUsage(account, currentBillDate))
         return data
+
+    async def getFromProjectedBill(self, account, premise, currentBillDate):
+        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            response = await self._session.get(
+                URL_RESOURCES_PROJECTED_BILL.format(
+                    account=account,
+                    premise=premise,
+                    lastBillDate=currentBillDate.strftime("%m%d%Y"),
+                )
+            )
+
+        if response.status == 200:
+            data = {}
+            projectedBillData = (await response.json())["data"]
+
+            billToDate = float(projectedBillData["billToDate"])
+            projectedBill = float(projectedBillData["projectedBill"])
+            dailyAvg = float(projectedBillData["dailyAvg"])
+            avgHighTemp = int(projectedBillData["avgHighTemp"])
+
+            data["bill_to_date"] = billToDate
+            data["projected_bill"] = projectedBill
+            data["daily_avg"] = dailyAvg
+            data["avg_high_temp"] = avgHighTemp
+            return data
+
+        return []
+
+    async def getBBL_async(self, account):
+        URL = "https://www.fpl.com/api/resources/account/{account}/budgetBillingGraph"
+
+        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            response = await self._session.get(URL.format(account=account))
+            if response.status == 200:
+                r = (await response.json())["data"]
+                data = {}
+                data["projected_budget_bill"] = float(r["bbAmt"])
+                data["bill_to_date"] = float(r["eleAmt"])
+                data["defered_amount"] = float(r["defAmt"])
+                return data
+
+        return []
+
+    async def getDataFromEnergyService(self, account, premise, lastBilledDate):
+        URL = "https://www.fpl.com/dashboard-api/resources/account/{account}/energyService/{account}"
+
+        date = str(lastBilledDate.strftime("%m%d%Y"))
+        JSON = {
+            "recordCount": 24,
+            "status": 2,
+            "channel": "WEB",
+            "amrFlag": "Y",
+            "accountType": "RESIDENTIAL",
+            "revCode": "1",
+            "premiseNumber": premise,
+            "meterNo": "D3117",
+            "projectedBillFlag": True,
+            "billComparisionFlag": True,
+            "monthlyFlag": True,
+            "frequencyType": "Daily",
+            "lastBilledDate": date,
+            "applicationPage": "resDashBoard",
+        }
+
+        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            response = await self._session.post(URL.format(account=account), json=JSON)
+            if response.status == 200:
+                r = (await response.json())["data"]
+                dailyUsage = []
+
+                for daily in r["DailyUsage"]["data"]:
+                    dailyUsage.append(
+                        {
+                            "usage": daily["kwhUsed"],
+                            "cost": daily["billingCharge"],
+                            "date": daily["date"],
+                            "max_temperature": daily["averageHighTemperature"],
+                        }
+                    )
+
+                return {"daily_usage": dailyUsage}
+
+        return []
+
+    async def getDataFromApplianceUsage(self, account, lastBilledDate):
+        URL = "https://www.fpl.com/dashboard-api/resources/account/{account}/applianceUsage/{account}"
+        JSON = {"startDate": str(lastBilledDate.strftime("%m%d%Y"))}
+
+        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            response = await self._session.post(URL.format(account=account), json=JSON)
+            if response.status == 200:
+                electric = (await response.json())["data"]["electric"]
+                data = {}
+                full = 100
+                for e in electric:
+                    rr = round(float(e["percentageDollar"]))
+                    if rr < full:
+                        full = full - rr
+                    else:
+                        rr = full
+                    data[e["category"].replace(" ", "_")] = rr
+
+                return {"energy_percent_by_applicance": data}
+
+        return []
