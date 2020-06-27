@@ -69,7 +69,9 @@ class FplSensor(Entity):
     @property
     def unique_id(self):
         """Return the ID of this device."""
-        return "{}{}".format(DOMAIN, self._account)
+        id = "{}{}".format(DOMAIN, self._account)
+        _LOGGER.info(f"ID: {id}")
+        return id
 
     @property
     def name(self):
