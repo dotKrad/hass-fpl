@@ -6,6 +6,8 @@ import asyncio
 from homeassistant.helpers.entity import Entity
 from homeassistant import util
 
+from homeassistant.helpers.event import async_call_later
+
 from homeassistant.const import (
     CONF_NAME,
     EVENT_CORE_CONFIG_UPDATE,
@@ -47,6 +49,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     except Exception as e:  # pylint: disable=broad-except
         _LOGGER.error(f"Adding fpl accounts: {e}")
+        async_call_later(
+            hass, 15, async_setup_entry(hass, config_entry, async_add_entities)
+        )
 
     await session.close()
 
