@@ -31,7 +31,7 @@ class FplApi(object):
         self._username = username
         self._password = password
         self._loop = loop
-        self._session = session    
+        self._session = session
 
     async def login(self):
         _LOGGER.info("Logging")
@@ -44,7 +44,7 @@ class FplApi(object):
         js = json.loads(await response.text())
 
         if response.reason == "Unauthorized":
-            return js["messageCode"]
+            raise Exception(js["messageCode"])
 
         if js["messages"][0]["messageCode"] != "login.success":
             _LOGGER.error(f"Logging Failure")
@@ -65,7 +65,7 @@ class FplApi(object):
 
         for account in accounts:
             if account["statusCategory"] == STATUS_CATEGORY_OPEN:
-                result.append(account["accountNumber"])            
+                result.append(account["accountNumber"])
 
         # self._account_number = js["data"]["selectedAccount"]["data"]["accountNumber"]
         # self._premise_number = js["data"]["selectedAccount"]["data"]["acctSecSettings"]["premiseNumber"]

@@ -45,8 +45,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
             async_add_entities(fpl_accounts)
 
-    except Exception:  # pylint: disable=broad-except
-        pass
+    except Exception as e:  # pylint: disable=broad-except
+        _LOGGER.error(f"Adding fpl accounts: {e}")
 
     await session.close()
 
