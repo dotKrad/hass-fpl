@@ -119,7 +119,6 @@ class FplApi(object):
         for program in programsData:
             if "enrollmentStatus" in program.keys():
                 key = program["name"]
-                _LOGGER.info(f"{key} : {program['enrollmentStatus']}")
                 programs[key] = program["enrollmentStatus"] == ENROLLED
 
         if programs["BBL"]:
@@ -163,6 +162,7 @@ class FplApi(object):
         return []
 
     async def getBBL_async(self, account):
+        _LOGGER.info(f"Getting budget billing data")
         URL = "https://www.fpl.com/api/resources/account/{account}/budgetBillingGraph"
 
         async with async_timeout.timeout(TIMEOUT, loop=self._loop):
@@ -178,6 +178,7 @@ class FplApi(object):
         return []
 
     async def getDataFromEnergyService(self, account, premise, lastBilledDate):
+        _LOGGER.info(f"Getting data from energy service")
         URL = "https://www.fpl.com/dashboard-api/resources/account/{account}/energyService/{account}"
 
         date = str(lastBilledDate.strftime("%m%d%Y"))
@@ -205,20 +206,22 @@ class FplApi(object):
                 dailyUsage = []
 
                 for daily in r["DailyUsage"]["data"]:
-                    dailyUsage.append(
-                        {
-                            "usage": daily["kwhUsed"],
-                            "cost": daily["billingCharge"],
-                            "date": daily["date"],
-                            "max_temperature": daily["averageHighTemperature"],
-                        }
-                    )
+                    if "kwhUsed" in daily.keys():
+                        dailyUsage.append(
+                            {
+                                "usage": daily["kwhUsed"],
+                                "cost": daily["billingCharge"],
+                                "date": daily["date"],
+                                "max_temperature": daily["averageHighTemperature"],
+                            }
+                        )
 
                 return {"daily_usage": dailyUsage}
 
         return []
 
     async def getDataFromApplianceUsage(self, account, lastBilledDate):
+        _LOGGER.info(f"Getting data from applicance usage")
         URL = "https://www.fpl.com/dashboard-api/resources/account/{account}/applianceUsage/{account}"
         JSON = {"startDate": str(lastBilledDate.strftime("%m%d%Y"))}
 

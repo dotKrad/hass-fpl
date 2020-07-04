@@ -46,9 +46,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                 fpl_accounts.append(FplSensor(hass, config_entry.data, account))
 
             async_add_entities(fpl_accounts)
-
     except Exception as e:  # pylint: disable=broad-except
-        _LOGGER.error(f"Adding fpl accounts: {e}")
+        _LOGGER.error(f"Adding fpl accounts: {str(e)}")
         async_call_later(
             hass, 15, async_setup_entry(hass, config_entry, async_add_entities)
         )
@@ -82,11 +81,23 @@ class FplSensor(Entity):
 
     @property
     def state(self):
-        return self._state  #
+        state = self._state
+        data = self._data
 
-    @property
-    def unit_of_measurement(self):
-        return " "
+        if type(data) is dict:
+            if "budget_bill" in data.keys():
+                if data["budget_bill"]:
+                    if "projected_budget_bill" in data.keys():
+                        state = data["projected_budget_bill"]
+            else:
+                if "projected_bill" in data.keys():
+                    state = data["projected_bill"]
+
+        return state
+
+    # @property
+    # def unit_of_measurement(self):
+    #    return "$"
 
     @property
     def icon(self):
@@ -98,18 +109,16 @@ class FplSensor(Entity):
 
     @util.Throttle(MIN_TIME_BETWEEN_SCANS, MIN_TIME_BETWEEN_UPDATES)
     async def async_update(self):
-        self._state = STATE_UNKNOWN
-        self._data = None
-        session = aiohttp.ClientSession()
         try:
+            session = aiohttp.ClientSession()
             api = FplApi(self.username, self.password, self.loop, session)
             await api.login()
-            self._data = await api.async_get_data(self._account)
-            if self._data["budget_bill"]:
-                self._state = self._data["projected_budget_bill"]
-            else:
-                self._state = self._data["projected_bill"]
-        except Exception:  # pylint: disable=broad-except
-            pass
+            data = await api.async_get_data(self._account)
+            if data != {}:
+                self._data = data
 
-        await session.close()
+        except Exception as e:  # pylint: disable=broad-except
+            _LOGGER.warning(f"Error ocurred during update: { str(e)}")
+
+        finally:
+            await session.close()
