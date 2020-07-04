@@ -205,6 +205,8 @@ class FplApi(object):
                 r = (await response.json())["data"]
                 dailyUsage = []
 
+                totalPowerUsage = 0
+
                 for daily in r["DailyUsage"]["data"]:
                     if "kwhUsed" in daily.keys():
                         dailyUsage.append(
@@ -215,8 +217,9 @@ class FplApi(object):
                                 "max_temperature": daily["averageHighTemperature"],
                             }
                         )
+                        totalPowerUsage += int(daily["kwhUsed"])
 
-                return {"daily_usage": dailyUsage}
+                return {"total_power_usage": totalPowerUsage, "daily_usage": dailyUsage}
 
         return []
 
