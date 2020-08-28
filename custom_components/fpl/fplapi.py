@@ -124,7 +124,7 @@ class FplApi(object):
         if programs["BBL"]:
             # budget billing
             data["budget_bill"] = True
-            bblData = await self.getBBL_async(account)
+            bblData = await self.getBBL_async(account, data)
             data.update(bblData)
 
         data.update(
@@ -161,21 +161,50 @@ class FplApi(object):
 
         return []
 
-    async def getBBL_async(self, account):
+    async def getBBL_async(self, account, projectedBillData):
         _LOGGER.info(f"Getting budget billing data")
+        data = {}
+
+        URL = "https://www.fpl.com/api/resources/account/{account}/budgetBillingGraph/premiseDetails"
+        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            response = await self._session.get(URL.format(account=account))
+            if response.status == 200:
+                r = (await response.json())["data"]
+                dataList = r["graphData"]
+
+                startIndex = len(dataList) - 1
+
+                billingCharge = 0
+                budgetBillDeferBalance = r["defAmt"]
+
+                projectedBill = projectedBillData["projected_bill"]
+                asOfDays = projectedBillData["as_of_days"]
+               
+                for det in dataList:
+                    billingCharge += det["actuallBillAmt"]
+
+                calc1 = (projectedBill + billingCharge) / 12
+                calc2 = (1 / 12) * (budgetBillDeferBalance)
+
+                projectedBudgetBill = round(calc1 + calc2, 2)
+                bbDailyAvg = round(projectedBudgetBill / 30, 2)
+                bbAsOfDateAmt = round(projectedBudgetBill / 30 * asOfDays, 2)
+
+                data["budget_billing_daily_avg"] = bbDailyAvg
+                data["budget_billing_bill_to_date"] = bbAsOfDateAmt
+
+                data["budget_billing_projected_bill"] = float(projectedBudgetBill)
+
         URL = "https://www.fpl.com/api/resources/account/{account}/budgetBillingGraph"
 
         async with async_timeout.timeout(TIMEOUT, loop=self._loop):
             response = await self._session.get(URL.format(account=account))
             if response.status == 200:
                 r = (await response.json())["data"]
-                data = {}
-                data["projected_budget_bill"] = float(r["bbAmt"])
                 data["bill_to_date"] = float(r["eleAmt"])
                 data["defered_amount"] = float(r["defAmt"])
-                return data
 
-        return []
+        return data
 
     async def getDataFromEnergyService(self, account, premise, lastBilledDate):
         _LOGGER.info(f"Getting data from energy service")

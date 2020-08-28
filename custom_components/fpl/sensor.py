@@ -87,8 +87,8 @@ class FplSensor(Entity):
         if type(data) is dict:
             if "budget_bill" in data.keys():
                 if data["budget_bill"]:
-                    if "projected_budget_bill" in data.keys():
-                        state = data["projected_budget_bill"]
+                    if "budget_billing_projected_bill" in data.keys():
+                        state = data["budget_billing_projected_bill"]
             else:
                 if "projected_bill" in data.keys():
                     state = data["projected_bill"]
