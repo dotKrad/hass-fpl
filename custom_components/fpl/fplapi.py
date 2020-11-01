@@ -9,7 +9,12 @@ import json
 
 
 from bs4 import BeautifulSoup
-from .const import STATUS_CATEGORY_OPEN, LOGIN_RESULT_OK
+
+STATUS_CATEGORY_OPEN = "OPEN"
+# Api login result
+LOGIN_RESULT_OK = "OK"
+LOGIN_RESULT_INVALIDUSER = "NOTVALIDUSER"
+LOGIN_RESULT_INVALIDPASSWORD = "FAILEDPASSWORD"
 
 _LOGGER = logging.getLogger(__name__)
 TIMEOUT = 5
@@ -26,31 +31,59 @@ NOTENROLLED = "NOTENROLLED"
 class FplApi(object):
     """A class for getting energy usage information from Florida Power & Light."""
 
-    def __init__(self, username, password, loop, session):
+    def __init__(self, username, password, loop):
         """Initialize the data retrieval. Session should have BasicAuth flag set."""
         self._username = username
         self._password = password
         self._loop = loop
-        self._session = session
+        self._session = None
+
+    async def get_data(self):
+        self._session = aiohttp.ClientSession()
+        data = {}
+        await self.login()
+        accounts = await self.async_get_open_accounts()
+
+        data["accounts"] = accounts
+        for account in accounts:
+            accountData = await self.__async_get_data(account)
+            data[account] = accountData
+
+        await self._session.close()
+
+        return data
 
     async def login(self):
+        if self._session is not None:
+            session = self._session
+            close = False
+        else:
+            session = aiohttp.ClientSession()
+            close = True
+
         _LOGGER.info("Logging")
         """login and get account information"""
         async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-            response = await self._session.get(
+            response = await session.get(
                 URL_LOGIN, auth=aiohttp.BasicAuth(self._username, self._password)
             )
 
         js = json.loads(await response.text())
 
         if response.reason == "Unauthorized":
+            await session.close()
             raise Exception(js["messageCode"])
 
         if js["messages"][0]["messageCode"] != "login.success":
             _LOGGER.error(f"Logging Failure")
+            await session.close()
             raise Exception("login failure")
 
         _LOGGER.info(f"Logging Successful")
+
+        if close:
+            await session.close()
+
         return LOGIN_RESULT_OK
 
     async def async_get_open_accounts(self):
@@ -71,7 +104,7 @@ class FplApi(object):
         # self._premise_number = js["data"]["selectedAccount"]["data"]["acctSecSettings"]["premiseNumber"]
         return result
 
-    async def async_get_data(self, account):
+    async def __async_get_data(self, account):
         _LOGGER.info(f"Getting Data")
         data = {}
 
@@ -108,7 +141,7 @@ class FplApi(object):
         zip_code = accountData["serviceAddress"]["zip"]
 
         # projected bill
-        pbData = await self.getFromProjectedBill(account, premise, currentBillDate)
+        pbData = await self.__getFromProjectedBill(account, premise, currentBillDate)
         data.update(pbData)
 
         # programs
@@ -124,17 +157,17 @@ class FplApi(object):
         if programs["BBL"]:
             # budget billing
             data["budget_bill"] = True
-            bblData = await self.getBBL_async(account, data)
+            bblData = await self.__getBBL_async(account, data)
             data.update(bblData)
 
         data.update(
-            await self.getDataFromEnergyService(account, premise, currentBillDate)
+            await self.__getDataFromEnergyService(account, premise, currentBillDate)
         )
 
-        data.update(await self.getDataFromApplianceUsage(account, currentBillDate))
+        data.update(await self.__getDataFromApplianceUsage(account, currentBillDate))
         return data
 
-    async def getFromProjectedBill(self, account, premise, currentBillDate):
+    async def __getFromProjectedBill(self, account, premise, currentBillDate):
         async with async_timeout.timeout(TIMEOUT, loop=self._loop):
             response = await self._session.get(
                 URL_RESOURCES_PROJECTED_BILL.format(
@@ -161,7 +194,7 @@ class FplApi(object):
 
         return []
 
-    async def getBBL_async(self, account, projectedBillData):
+    async def __getBBL_async(self, account, projectedBillData):
         _LOGGER.info(f"Getting budget billing data")
         data = {}
 
@@ -179,7 +212,7 @@ class FplApi(object):
 
                 projectedBill = projectedBillData["projected_bill"]
                 asOfDays = projectedBillData["as_of_days"]
-               
+
                 for det in dataList:
                     billingCharge += det["actuallBillAmt"]
 
@@ -206,7 +239,7 @@ class FplApi(object):
 
         return data
 
-    async def getDataFromEnergyService(self, account, premise, lastBilledDate):
+    async def __getDataFromEnergyService(self, account, premise, lastBilledDate):
         _LOGGER.info(f"Getting data from energy service")
         URL = "https://www.fpl.com/dashboard-api/resources/account/{account}/energyService/{account}"
 
@@ -252,7 +285,7 @@ class FplApi(object):
 
         return []
 
-    async def getDataFromApplianceUsage(self, account, lastBilledDate):
+    async def __getDataFromApplianceUsage(self, account, lastBilledDate):
         _LOGGER.info(f"Getting data from applicance usage")
         URL = "https://www.fpl.com/dashboard-api/resources/account/{account}/applianceUsage/{account}"
         JSON = {"startDate": str(lastBilledDate.strftime("%m%d%Y"))}

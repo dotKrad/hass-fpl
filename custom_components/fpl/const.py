@@ -16,9 +16,6 @@ REQUIRED_FILES = [
 ISSUE_URL = "https://github.com/dotKrad/hass-fpl/issues"
 ATTRIBUTION = "Data from this is provided by FPL."
 
-# Icons
-ICON = "mdi:flash"
-
 # Device classes
 BINARY_SENSOR_DEVICE_CLASS = "connectivity"
 
@@ -33,11 +30,3 @@ CONF_PASSWORD = "password"
 
 # Defaults
 DEFAULT_NAME = DOMAIN
-
-# Api login result
-LOGIN_RESULT_OK = "OK"
-LOGIN_RESULT_INVALIDUSER = "NOTVALIDUSER"
-LOGIN_RESULT_INVALIDPASSWORD = "FAILEDPASSWORD"
-
-
-STATUS_CATEGORY_OPEN = "OPEN"

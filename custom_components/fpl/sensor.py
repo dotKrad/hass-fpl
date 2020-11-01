@@ -15,8 +15,12 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
     STATE_UNKNOWN,
+    ATTR_FRIENDLY_NAME,
 )
-from .const import DOMAIN, ICON, LOGIN_RESULT_OK
+from .const import DOMAIN, DOMAIN_DATA, ATTRIBUTION
+from .DailyUsageSensor import FplDailyUsageSensor
+from .AverageDailySensor import FplAverageDailySensor
+from .ProjectedBillSensor import FplProjectedBillSensor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,38 +33,25 @@ def setup(hass, config):
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    username = config_entry.data.get(CONF_USERNAME)
-    password = config_entry.data.get(CONF_PASSWORD)
 
-    session = aiohttp.ClientSession()
-    try:
-        api = FplApi(username, password, hass.loop, session)
-        result = await api.login()
+    accounts = config_entry.data.get("accounts")
 
-        fpl_accounts = []
+    fpl_accounts = []
 
-        if result == LOGIN_RESULT_OK:
-            accounts = await api.async_get_open_accounts()
-            for account in accounts:
-                _LOGGER.info(f"Adding fpl account: {account}")
-                fpl_accounts.append(FplSensor(hass, config_entry.data, account))
+    for account in accounts:
+        _LOGGER.info(f"Adding fpl account: {account}")
+        fpl_accounts.append(FplSensor(hass, config_entry.data, account))
+        fpl_accounts.append(FplDailyUsageSensor(hass, config_entry.data, account))
+        fpl_accounts.append(FplAverageDailySensor(hass, config_entry.data, account))
+        fpl_accounts.append(FplProjectedBillSensor(hass, config_entry.data, account))
 
-            async_add_entities(fpl_accounts)
-    except Exception as e:  # pylint: disable=broad-except
-        _LOGGER.error(f"Adding fpl accounts: {str(e)}")
-        async_call_later(
-            hass, 15, async_setup_entry(hass, config_entry, async_add_entities)
-        )
-
-    await session.close()
+    async_add_entities(fpl_accounts)
 
 
 class FplSensor(Entity):
     def __init__(self, hass, config, account):
         self._config = config
-        self.username = config.get(CONF_USERNAME)
-        self.password = config.get(CONF_PASSWORD)
-        self._state = STATE_UNKNOWN
+        self._state = None
         self.loop = hass.loop
 
         self._account = account
@@ -68,6 +59,14 @@ class FplSensor(Entity):
 
     async def async_added_to_hass(self):
         await self.async_update()
+
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {(DOMAIN, self._account)},
+            "name": f"Account {self._account}",
+            "manufacturer": "Florida Power & Light",
+        }
 
     @property
     def unique_id(self):
@@ -101,7 +100,7 @@ class FplSensor(Entity):
 
     @property
     def icon(self):
-        return ICON
+        return "mdi:flash"
 
     @property
     def state_attributes(self):
@@ -109,16 +108,13 @@ class FplSensor(Entity):
 
     @util.Throttle(MIN_TIME_BETWEEN_SCANS, MIN_TIME_BETWEEN_UPDATES)
     async def async_update(self):
-        try:
-            session = aiohttp.ClientSession()
-            api = FplApi(self.username, self.password, self.loop, session)
-            await api.login()
-            data = await api.async_get_data(self._account)
+        # Send update "signal" to the component
+        await self.hass.data[DOMAIN_DATA]["client"].update_data()
+
+        # Get new data (if any)
+        if "data" in self.hass.data[DOMAIN_DATA]:
+            data = self.hass.data[DOMAIN_DATA]["data"][self._account]
+
             if data != {}:
                 self._data = data
-
-        except Exception as e:  # pylint: disable=broad-except
-            _LOGGER.warning(f"Error ocurred during update: { str(e)}")
-
-        finally:
-            await session.close()
+                self._data["attribution"] = ATTRIBUTION

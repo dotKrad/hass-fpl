@@ -2,17 +2,17 @@ from collections import OrderedDict
 
 import voluptuous as vol
 from .fplapi import FplApi
+
 from homeassistant import config_entries
 import aiohttp
-from .const import (
-    DOMAIN,
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    CONF_NAME,
+from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, CONF_NAME
+
+from .fplapi import (
     LOGIN_RESULT_OK,
     LOGIN_RESULT_INVALIDUSER,
     LOGIN_RESULT_INVALIDPASSWORD,
 )
+
 from homeassistant.core import callback
 
 
@@ -34,7 +34,9 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize."""
         self._errors = {}
 
-    async def async_step_user(self, user_input={}):  # pylint: disable=dangerous-default-value
+    async def async_step_user(
+        self, user_input={}
+    ):  # pylint: disable=dangerous-default-value
         """Handle a flow initialized by the user."""
         self._errors = {}
 
@@ -48,12 +50,16 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             password = user_input[CONF_PASSWORD]
 
             if username not in configured_instances(self.hass):
-                result = await self._test_credentials(username, password)
+                api = FplApi(username, password, None)
+                result = await api.login()
 
                 if result == LOGIN_RESULT_OK:
-                    return self.async_create_entry(
-                        title=user_input[CONF_NAME], data=user_input
-                    )
+                    fplData = await api.get_data()
+                    accounts = fplData["accounts"]
+
+                    user_input["accounts"] = accounts
+
+                    return self.async_create_entry(title="", data=user_input)
 
                 if result == LOGIN_RESULT_INVALIDUSER:
                     self._errors[CONF_USERNAME] = "invalid_username"
@@ -77,18 +83,14 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         # Defaults
         username = ""
         password = ""
-        name = "Home"
 
         if user_input is not None:
             if CONF_USERNAME in user_input:
                 username = user_input[CONF_USERNAME]
             if CONF_PASSWORD in user_input:
                 password = user_input[CONF_PASSWORD]
-            if CONF_NAME in user_input:
-                name = user_input[CONF_NAME]
 
         data_schema = OrderedDict()
-        data_schema[vol.Required(CONF_NAME, default=name)] = str
         data_schema[vol.Required(CONF_USERNAME, default=username)] = str
         data_schema[vol.Required(CONF_PASSWORD, default=password)] = str
 
@@ -96,14 +98,12 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=vol.Schema(data_schema), errors=self._errors
         )
 
-    async def _test_credentials(self, username, password):
-        """Return true if credentials is valid."""
-        session = aiohttp.ClientSession()
-        try:
-            api = FplApi(username, password, None, session)
-            result = await api.login()
-        except Exception:  # pylint: disable=broad-except
-            pass
+    async def async_step_import(self, user_input):  # pylint: disable=unused-argument
+        """Import a config entry.
+        Special type of import, we're not actually going to store any data.
+        Instead, we're going to rely on the values that are in config file.
+        """
+        if self._async_current_entries():
+            return self.async_abort(reason="single_instance_allowed")
 
-        await session.close()
-        return result
+        return self.async_create_entry(title="configuration.yaml", data={})
