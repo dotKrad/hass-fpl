@@ -80,19 +80,18 @@ class FplSensor(Entity):
 
     @property
     def state(self):
-        state = self._state
         data = self._data
 
         if type(data) is dict:
             if "budget_bill" in data.keys():
                 if data["budget_bill"]:
                     if "budget_billing_projected_bill" in data.keys():
-                        state = data["budget_billing_projected_bill"]
+                        self._state = data["budget_billing_projected_bill"]
             else:
                 if "projected_bill" in data.keys():
-                    state = data["projected_bill"]
+                    self._state = data["projected_bill"]
 
-        return state
+        return self._state
 
     # @property
     # def unit_of_measurement(self):

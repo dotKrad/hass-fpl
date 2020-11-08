@@ -8,16 +8,15 @@ class FplProjectedBillSensor(FplSensor):
     @property
     def state(self):
         data = self.data
-        state = None
         if "budget_bill" in data.keys():
             if data["budget_bill"]:
                 if "budget_billing_projected_bill" in data.keys():
-                    state = data["budget_billing_projected_bill"]
+                    self._state = data["budget_billing_projected_bill"]
             else:
                 if "projected_bill" in data.keys():
-                    state = data["projected_bill"]
+                    self._state = data["projected_bill"]
 
-        return state
+        return self._state
 
     @property
     def device_state_attributes(self):
