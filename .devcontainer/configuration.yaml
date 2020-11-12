@@ -1,5 +1,5 @@
 default_config:
 logger:
-  default: error
+  default: info
   logs:
     custom_components.fpl: debug

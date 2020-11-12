@@ -5,7 +5,7 @@ import aiohttp
 import asyncio
 from homeassistant.helpers.entity import Entity
 from homeassistant import util
-
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.event import async_call_later
 
 from homeassistant.const import (
@@ -33,19 +33,23 @@ def setup(hass, config):
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
+    try:
+        accounts = config_entry.data.get("accounts")
 
-    accounts = config_entry.data.get("accounts")
+        fpl_accounts = []
 
-    fpl_accounts = []
+        for account in accounts:
+            _LOGGER.info(f"Adding fpl account: {account}")
+            fpl_accounts.append(FplSensor(hass, config_entry.data, account))
+            fpl_accounts.append(FplDailyUsageSensor(hass, config_entry.data, account))
+            fpl_accounts.append(FplAverageDailySensor(hass, config_entry.data, account))
+            fpl_accounts.append(
+                FplProjectedBillSensor(hass, config_entry.data, account)
+            )
 
-    for account in accounts:
-        _LOGGER.info(f"Adding fpl account: {account}")
-        fpl_accounts.append(FplSensor(hass, config_entry.data, account))
-        fpl_accounts.append(FplDailyUsageSensor(hass, config_entry.data, account))
-        fpl_accounts.append(FplAverageDailySensor(hass, config_entry.data, account))
-        fpl_accounts.append(FplProjectedBillSensor(hass, config_entry.data, account))
-
-    async_add_entities(fpl_accounts)
+        async_add_entities(fpl_accounts)
+    except:
+        raise ConfigEntryNotReady
 
 
 class FplSensor(Entity):
@@ -108,7 +112,7 @@ class FplSensor(Entity):
     @util.Throttle(MIN_TIME_BETWEEN_SCANS, MIN_TIME_BETWEEN_UPDATES)
     async def async_update(self):
         # Send update "signal" to the component
-        await self.hass.data[DOMAIN_DATA]["client"].update_data()
+        # await self.hass.data[DOMAIN_DATA]["client"].update_data()
 
         # Get new data (if any)
         if "data" in self.hass.data[DOMAIN_DATA]:

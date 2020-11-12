@@ -22,7 +22,7 @@ class FplSensor(Entity):
     async def async_update(self):
         """Update the sensor."""
         # Send update "signal" to the component
-        await self.hass.data[DOMAIN_DATA]["client"].update_data()
+        # await self.hass.data[DOMAIN_DATA]["client"].update_data()
 
         # Get new data (if any)
         if "data" in self.hass.data[DOMAIN_DATA]:

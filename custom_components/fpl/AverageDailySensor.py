@@ -7,7 +7,12 @@ class FplAverageDailySensor(FplSensor):
 
     @property
     def state(self):
-        return self.data["daily_avg"]
+        try:
+            if "daily_avg" in self.data:
+                self._state = self.data["daily_avg"]
+        except:
+            pass
+        return self._state
 
     @property
     def device_state_attributes(self):
