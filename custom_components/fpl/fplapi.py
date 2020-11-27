@@ -179,6 +179,8 @@ class FplApi(object):
         return data
 
     async def __getFromProjectedBill(self, account, premise, currentBillDate):
+        data = {}
+
         try:
             async with async_timeout.timeout(TIMEOUT, loop=self._loop):
                 response = await self._session.get(
@@ -190,7 +192,7 @@ class FplApi(object):
                 )
 
             if response.status == 200:
-                data = {}
+                
                 projectedBillData = (await response.json())["data"]
 
                 billToDate = float(projectedBillData["billToDate"])
@@ -201,10 +203,11 @@ class FplApi(object):
                 data["bill_to_date"] = billToDate
                 data["projected_bill"] = projectedBill
                 data["daily_avg"] = dailyAvg
-                data["avg_high_temp"] = avgHighTemp
-                return data
+                data["avg_high_temp"] = avgHighTemp                
         except:
-            return []
+            pass
+
+        return data
 
     async def __getBBL_async(self, account, projectedBillData):
         _LOGGER.info(f"Getting budget billing data")
@@ -281,6 +284,8 @@ class FplApi(object):
             "applicationPage": "resDashBoard",
         }
 
+        data = {}
+
         async with async_timeout.timeout(TIMEOUT, loop=self._loop):
             response = await self._session.post(URL.format(account=account), json=JSON)
             if response.status == 200:
@@ -288,27 +293,29 @@ class FplApi(object):
                 dailyUsage = []
 
                 totalPowerUsage = 0
+                if "data" in r["DailyUsage"]:
+                    for daily in r["DailyUsage"]["data"]:
+                        if "kwhUsed" in daily.keys():
+                            dailyUsage.append(
+                                {
+                                    "usage": daily["kwhUsed"],
+                                    "cost": daily["billingCharge"],
+                                    "date": daily["date"],
+                                    "max_temperature": daily["averageHighTemperature"],
+                                }
+                            )
+                            totalPowerUsage += int(daily["kwhUsed"])
 
-                for daily in r["DailyUsage"]["data"]:
-                    if "kwhUsed" in daily.keys():
-                        dailyUsage.append(
-                            {
-                                "usage": daily["kwhUsed"],
-                                "cost": daily["billingCharge"],
-                                "date": daily["date"],
-                                "max_temperature": daily["averageHighTemperature"],
-                            }
-                        )
-                        totalPowerUsage += int(daily["kwhUsed"])
+                    data["total_power_usage"] = totalPowerUsage
+                    data["daily_usage"] = dailyUsage
 
-                return {"total_power_usage": totalPowerUsage, "daily_usage": dailyUsage}
-
-        return []
+        return data
 
     async def __getDataFromApplianceUsage(self, account, lastBilledDate):
         _LOGGER.info(f"Getting data from applicance usage")
         URL = "https://www.fpl.com/dashboard-api/resources/account/{account}/applianceUsage/{account}"
         JSON = {"startDate": str(lastBilledDate.strftime("%m%d%Y"))}
+        data = {}
         try:
             async with async_timeout.timeout(TIMEOUT, loop=self._loop):
                 response = await self._session.post(
@@ -316,7 +323,7 @@ class FplApi(object):
                 )
                 if response.status == 200:
                     electric = (await response.json())["data"]["electric"]
-                    data = {}
+                    
                     full = 100
                     for e in electric:
                         rr = round(float(e["percentageDollar"]))
@@ -325,7 +332,8 @@ class FplApi(object):
                         else:
                             rr = full
                         data[e["category"].replace(" ", "_")] = rr
-
-                    return {"energy_percent_by_applicance": data}
+                    
         except:
-            return []
+            pass
+
+        return {"energy_percent_by_applicance": data}
