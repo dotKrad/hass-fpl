@@ -41,7 +41,7 @@ class FplApi(object):
         self._loop = loop
         self._session = None
 
-    async def get_data(self):
+    async def get_data(self) -> dict:
         self._session = aiohttp.ClientSession()
         data = {}
         data["accounts"] = []
@@ -115,7 +115,7 @@ class FplApi(object):
         # self._premise_number = js["data"]["selectedAccount"]["data"]["acctSecSettings"]["premiseNumber"]
         return result
 
-    async def __async_get_data(self, account):
+    async def __async_get_data(self, account) -> dict:
         _LOGGER.info(f"Getting Data")
         data = {}
 
@@ -178,7 +178,7 @@ class FplApi(object):
         data.update(await self.__getDataFromApplianceUsage(account, currentBillDate))
         return data
 
-    async def __getFromProjectedBill(self, account, premise, currentBillDate):
+    async def __getFromProjectedBill(self, account, premise, currentBillDate) -> dict:
         data = {}
 
         try:
@@ -192,7 +192,7 @@ class FplApi(object):
                 )
 
             if response.status == 200:
-                
+
                 projectedBillData = (await response.json())["data"]
 
                 billToDate = float(projectedBillData["billToDate"])
@@ -203,13 +203,13 @@ class FplApi(object):
                 data["bill_to_date"] = billToDate
                 data["projected_bill"] = projectedBill
                 data["daily_avg"] = dailyAvg
-                data["avg_high_temp"] = avgHighTemp                
+                data["avg_high_temp"] = avgHighTemp
         except:
             pass
 
         return data
 
-    async def __getBBL_async(self, account, projectedBillData):
+    async def __getBBL_async(self, account, projectedBillData) -> dict:
         _LOGGER.info(f"Getting budget billing data")
         data = {}
 
@@ -295,7 +295,12 @@ class FplApi(object):
                 totalPowerUsage = 0
                 if "data" in r["DailyUsage"]:
                     for daily in r["DailyUsage"]["data"]:
-                        if "kwhUsed" in daily.keys():
+                        if (
+                            "kwhUsed" in daily.keys()
+                            and "billingCharge" in daily.keys()
+                            and "date" in daily.keys()
+                            and "averageHighTemperature" in daily.keys()
+                        ):
                             dailyUsage.append(
                                 {
                                     "usage": daily["kwhUsed"],
@@ -311,7 +316,7 @@ class FplApi(object):
 
         return data
 
-    async def __getDataFromApplianceUsage(self, account, lastBilledDate):
+    async def __getDataFromApplianceUsage(self, account, lastBilledDate) -> dict:
         _LOGGER.info(f"Getting data from applicance usage")
         URL = "https://www.fpl.com/dashboard-api/resources/account/{account}/applianceUsage/{account}"
         JSON = {"startDate": str(lastBilledDate.strftime("%m%d%Y"))}
@@ -323,7 +328,7 @@ class FplApi(object):
                 )
                 if response.status == 200:
                     electric = (await response.json())["data"]["electric"]
-                    
+
                     full = 100
                     for e in electric:
                         rr = round(float(e["percentageDollar"]))
@@ -332,7 +337,7 @@ class FplApi(object):
                         else:
                             rr = full
                         data[e["category"].replace(" ", "_")] = rr
-                    
+
         except:
             pass
 
