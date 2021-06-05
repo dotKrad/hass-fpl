@@ -1,5 +1,6 @@
 """Constants for fpl."""
 # Base component constants
+NAME = "FPL Integration"
 DOMAIN = "fpl"
 DOMAIN_DATA = f"{DOMAIN}_data"
 VERSION = "0.0.1"
@@ -14,7 +15,13 @@ REQUIRED_FILES = [
     "switch.py",
 ]
 ISSUE_URL = "https://github.com/dotKrad/hass-fpl/issues"
-ATTRIBUTION = "Data from this is provided by FPL."
+ATTRIBUTION = "This data is provided by FPL."
+
+# Platforms
+BINARY_SENSOR = "binary_sensor"
+SENSOR = "sensor"
+SWITCH = "switch"
+PLATFORMS = [SENSOR]
 
 # Device classes
 BINARY_SENSOR_DEVICE_CLASS = "connectivity"
@@ -30,3 +37,14 @@ CONF_PASSWORD = "password"
 
 # Defaults
 DEFAULT_NAME = DOMAIN
+
+
+STARTUP_MESSAGE = f"""
+-------------------------------------------------------------------
+{NAME}
+Version: {VERSION}
+This is a custom integration!
+If you have any issues with this you need to open an issue here:
+{ISSUE_URL}
+-------------------------------------------------------------------
+"""

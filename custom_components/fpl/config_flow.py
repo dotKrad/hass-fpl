@@ -4,7 +4,8 @@ import voluptuous as vol
 from .fplapi import FplApi
 
 from homeassistant import config_entries
-import aiohttp
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
+
 from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, CONF_NAME
 
 from .fplapi import (
@@ -40,26 +41,28 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle a flow initialized by the user."""
         self._errors = {}
 
-        if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
-        if self.hass.data.get(DOMAIN):
-            return self.async_abort(reason="single_instance_allowed")
+        # if self._async_current_entries():
+        #    return self.async_abort(reason="single_instance_allowed")
+
+        # if self.hass.data.get(DOMAIN):
+        #    return self.async_abort(reason="single_instance_allowed")
 
         if user_input is not None:
             username = user_input[CONF_USERNAME]
             password = user_input[CONF_PASSWORD]
 
             if username not in configured_instances(self.hass):
-                api = FplApi(username, password, None)
+                session = async_create_clientsession(self.hass)
+                api = FplApi(username, password, session)
                 result = await api.login()
 
                 if result == LOGIN_RESULT_OK:
-                    fplData = await api.get_data()
+                    fplData = await api.async_get_data()
                     accounts = fplData["accounts"]
 
                     user_input["accounts"] = accounts
 
-                    return self.async_create_entry(title="", data=user_input)
+                    return self.async_create_entry(title=username, data=user_input)
 
                 if result == LOGIN_RESULT_INVALIDUSER:
                     self._errors[CONF_USERNAME] = "invalid_username"
@@ -79,10 +82,6 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _show_config_form(self, user_input):
         """Show the configuration form to edit location data."""
-
-        # Defaults
-        username = ""
-        password = ""
 
         if user_input is not None:
             if CONF_USERNAME in user_input:

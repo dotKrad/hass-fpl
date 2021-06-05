@@ -19,7 +19,7 @@ LOGIN_RESULT_INVALIDPASSWORD = "FAILEDPASSWORD"
 LOGIN_RESULT_UNAUTHORIZED = "UNAUTHORIZED"
 LOGIN_RESULT_FAILURE = "FAILURE"
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__package__)
 TIMEOUT = 30
 
 URL_LOGIN = "https://www.fpl.com/api/resources/login"
@@ -34,15 +34,14 @@ NOTENROLLED = "NOTENROLLED"
 class FplApi(object):
     """A class for getting energy usage information from Florida Power & Light."""
 
-    def __init__(self, username, password, loop):
+    def __init__(self, username, password, session):
         """Initialize the data retrieval. Session should have BasicAuth flag set."""
         self._username = username
         self._password = password
-        self._loop = loop
-        self._session = None
+        self._session = session
 
-    async def get_data(self) -> dict:
-        self._session = aiohttp.ClientSession()
+    async def async_get_data(self) -> dict:
+        # self._session = aiohttp.ClientSession()
         data = {}
         data["accounts"] = []
         if await self.login() == LOGIN_RESULT_OK:
@@ -53,24 +52,16 @@ class FplApi(object):
                 accountData = await self.__async_get_data(account)
                 data[account] = accountData
 
-        await self._session.close()
-
+            await self.logout()
         return data
 
     async def login(self):
-        if self._session is not None:
-            session = self._session
-            close = False
-        else:
-            session = aiohttp.ClientSession()
-            close = True
-
-        _LOGGER.info("Logging")
+        _LOGGER.info("Logging in")
         """login and get account information"""
         result = LOGIN_RESULT_OK
         try:
-            async with async_timeout.timeout(TIMEOUT, loop=self._loop):
-                response = await session.get(
+            async with async_timeout.timeout(TIMEOUT, loop=asyncio.get_event_loop()):
+                response = await self._session.get(
                     URL_LOGIN, auth=aiohttp.BasicAuth(self._username, self._password)
                 )
 
@@ -89,17 +80,19 @@ class FplApi(object):
             _LOGGER.error(f"Error {e} : {sys.exc_info()[0]}")
             result = LOGIN_RESULT_FAILURE
 
-        if close:
-            await session.close()
-
         return result
+
+    async def logout(self):
+        _LOGGER.info("Logging out")
+        async with async_timeout.timeout(TIMEOUT, loop=asyncio.get_event_loop()):
+            await self._session.get("https://www.fpl.com/api/resources/logout")
 
     async def async_get_open_accounts(self):
         _LOGGER.info(f"Getting accounts")
         result = []
 
         try:
-            async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            async with async_timeout.timeout(TIMEOUT, loop=asyncio.get_event_loop()):
                 response = await self._session.get(URL_RESOURCES_HEADER)
 
             js = await response.json()
@@ -119,7 +112,7 @@ class FplApi(object):
         _LOGGER.info(f"Getting Data")
         data = {}
 
-        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+        async with async_timeout.timeout(TIMEOUT, loop=asyncio.get_event_loop()):
             response = await self._session.get(
                 URL_RESOURCES_ACCOUNT.format(account=account)
             )
@@ -182,7 +175,7 @@ class FplApi(object):
         data = {}
 
         try:
-            async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            async with async_timeout.timeout(TIMEOUT, loop=asyncio.get_event_loop()):
                 response = await self._session.get(
                     URL_RESOURCES_PROJECTED_BILL.format(
                         account=account,
@@ -215,7 +208,7 @@ class FplApi(object):
 
         URL = "https://www.fpl.com/api/resources/account/{account}/budgetBillingGraph/premiseDetails"
         try:
-            async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            async with async_timeout.timeout(TIMEOUT, loop=asyncio.get_event_loop()):
                 response = await self._session.get(URL.format(account=account))
                 if response.status == 200:
                     r = (await response.json())["data"]
@@ -249,7 +242,7 @@ class FplApi(object):
         URL = "https://www.fpl.com/api/resources/account/{account}/budgetBillingGraph"
 
         try:
-            async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            async with async_timeout.timeout(TIMEOUT, loop=asyncio.get_event_loop()):
                 response = await self._session.get(URL.format(account=account))
                 if response.status == 200:
                     r = (await response.json())["data"]
@@ -286,13 +279,13 @@ class FplApi(object):
 
         data = {}
 
-        async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+        async with async_timeout.timeout(TIMEOUT, loop=asyncio.get_event_loop()):
             response = await self._session.post(URL.format(account=account), json=JSON)
             if response.status == 200:
                 r = (await response.json())["data"]
                 dailyUsage = []
 
-                totalPowerUsage = 0
+                # totalPowerUsage = 0
                 if "data" in r["DailyUsage"]:
                     for daily in r["DailyUsage"]["data"]:
                         if (
@@ -309,11 +302,14 @@ class FplApi(object):
                                     "max_temperature": daily["averageHighTemperature"],
                                 }
                             )
-                            totalPowerUsage += int(daily["kwhUsed"])
+                            # totalPowerUsage += int(daily["kwhUsed"])
 
-                    data["total_power_usage"] = totalPowerUsage
+                    # data["total_power_usage"] = totalPowerUsage
                     data["daily_usage"] = dailyUsage
 
+                data["projectedKWH"] = r["CurrentUsage"]["projectedKWH"]
+                data["dailyAverageKWH"] = r["CurrentUsage"]["dailyAverageKWH"]
+                data["billToDateKWH"] = r["CurrentUsage"]["billToDateKWH"]
         return data
 
     async def __getDataFromApplianceUsage(self, account, lastBilledDate) -> dict:
@@ -322,7 +318,7 @@ class FplApi(object):
         JSON = {"startDate": str(lastBilledDate.strftime("%m%d%Y"))}
         data = {}
         try:
-            async with async_timeout.timeout(TIMEOUT, loop=self._loop):
+            async with async_timeout.timeout(TIMEOUT, loop=asyncio.get_event_loop()):
                 response = await self._session.post(
                     URL.format(account=account), json=JSON
                 )
