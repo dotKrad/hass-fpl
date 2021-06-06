@@ -82,6 +82,8 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _show_config_form(self, user_input):
         """Show the configuration form to edit location data."""
+        username = ""
+        password = ""
 
         if user_input is not None:
             if CONF_USERNAME in user_input:
