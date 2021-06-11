@@ -23,7 +23,7 @@ from .sensor_AverageDailySensor import (
     BudgetDailyAverageSensor,
     ActualDailyAverageSensor,
 )
-from .sensor_DailyUsageSensor import FplDailyUsageSensor
+from .sensor_DailyUsageSensor import FplDailyUsageKWHSensor, FplDailyUsageSensor
 from .const import DOMAIN
 
 from .sensor_AllData import AllDataSensor
@@ -55,6 +55,7 @@ async def async_setup_entry(hass, entry, async_add_devices):
         fpl_accounts.append(ActualDailyAverageSensor(coordinator, entry, account))
 
         fpl_accounts.append(FplDailyUsageSensor(coordinator, entry, account))
+        fpl_accounts.append(FplDailyUsageKWHSensor(coordinator, entry, account))
 
         # date sensors
         fpl_accounts.append(CurrentBillDateSensor(coordinator, entry, account))

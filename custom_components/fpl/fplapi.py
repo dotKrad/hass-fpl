@@ -268,7 +268,6 @@ class FplApi(object):
             "accountType": "RESIDENTIAL",
             "revCode": "1",
             "premiseNumber": premise,
-            "meterNo": "D3117",
             "projectedBillFlag": True,
             "billComparisionFlag": True,
             "monthlyFlag": True,
