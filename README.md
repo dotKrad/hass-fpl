@@ -16,7 +16,7 @@ Platform | Description
 5. Place the files you downloaded in the new directory (folder) you created.
 6. Restart Home Assistant
 7. Choose:
-   - In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Florida Power & Light"
+   - In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "FPL"
 
 # Compatible with HACS
 
