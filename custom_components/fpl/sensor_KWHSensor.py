@@ -1,7 +1,8 @@
-from .fplEntity import FplEntity
+from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING
+from .fplEntity import FplEnergyEntity
 
 
-class ProjectedKWHSensor(FplEntity):
+class ProjectedKWHSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Projected KWH")
 
@@ -9,12 +10,8 @@ class ProjectedKWHSensor(FplEntity):
     def state(self):
         return self.getData("projectedKWH")
 
-    @property
-    def icon(self):
-        return "mdi:flash"
 
-
-class DailyAverageKWHSensor(FplEntity):
+class DailyAverageKWHSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Average KWH")
 
@@ -22,12 +19,8 @@ class DailyAverageKWHSensor(FplEntity):
     def state(self):
         return self.getData("dailyAverageKWH")
 
-    @property
-    def icon(self):
-        return "mdi:flash"
 
-
-class BillToDateKWHSensor(FplEntity):
+class BillToDateKWHSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Bill To Date KWH")
 
@@ -36,5 +29,7 @@ class BillToDateKWHSensor(FplEntity):
         return self.getData("billToDateKWH")
 
     @property
-    def icon(self):
-        return "mdi:flash"
+    def state_class(self) -> str:
+        """Return the state class of this entity, from STATE_CLASSES, if any."""
+
+        return STATE_CLASS_TOTAL_INCREASING

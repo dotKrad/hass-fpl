@@ -1,7 +1,7 @@
-from .fplEntity import FplEntity
+from .fplEntity import FplMoneyEntity
 
 
-class FplProjectedBillSensor(FplEntity):
+class FplProjectedBillSensor(FplMoneyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Projected Bill")
 
@@ -26,13 +26,9 @@ class FplProjectedBillSensor(FplEntity):
 
         return attributes
 
-    @property
-    def icon(self):
-        return "mdi:currency-usd"
-
 
 # Defered Amount
-class DeferedAmountSensor(FplEntity):
+class DeferedAmountSensor(FplMoneyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Defered Amount")
 
@@ -42,12 +38,8 @@ class DeferedAmountSensor(FplEntity):
             return self.getData("defered_amount")
         return 0
 
-    @property
-    def icon(self):
-        return "mdi:currency-usd"
 
-
-class ProjectedBudgetBillSensor(FplEntity):
+class ProjectedBudgetBillSensor(FplMoneyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Projected Budget Bill")
 
@@ -55,19 +47,11 @@ class ProjectedBudgetBillSensor(FplEntity):
     def state(self):
         return self.getData("budget_billing_projected_bill")
 
-    @property
-    def icon(self):
-        return "mdi:currency-usd"
 
-
-class ProjectedActualBillSensor(FplEntity):
+class ProjectedActualBillSensor(FplMoneyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Projected Actual Bill")
 
     @property
     def state(self):
         return self.getData("projected_bill")
-
-    @property
-    def icon(self):
-        return "mdi:currency-usd"
