@@ -1,0 +1,8 @@
+{
+    "name": "Florida Power & Light",
+    "country": "US",
+    "domains": [
+        "sensor"
+    ],
+    "homeassistant": "2021.12.0"
+}
