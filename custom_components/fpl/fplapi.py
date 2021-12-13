@@ -1,7 +1,5 @@
-import asyncio
 import logging
-import re
-from datetime import timedelta, datetime, date as dt
+from datetime import datetime
 
 import aiohttp
 import async_timeout
@@ -9,7 +7,7 @@ import json
 import sys
 
 
-from bs4 import BeautifulSoup
+# from bs4 import BeautifulSoup
 
 STATUS_CATEGORY_OPEN = "OPEN"
 # Api login result
@@ -57,7 +55,7 @@ class FplApi(object):
 
     async def login(self):
         _LOGGER.info("Logging in")
-        """login and get account information"""
+        # login and get account information
         result = LOGIN_RESULT_OK
         try:
             async with async_timeout.timeout(TIMEOUT):
