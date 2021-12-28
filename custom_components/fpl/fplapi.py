@@ -310,6 +310,8 @@ class FplApi(object):
                 data["projectedKWH"] = r["CurrentUsage"]["projectedKWH"]
                 data["dailyAverageKWH"] = r["CurrentUsage"]["dailyAverageKWH"]
                 data["billToDateKWH"] = r["CurrentUsage"]["billToDateKWH"]
+                data["recMtrReading"] = r["CurrentUsage"]["recMtrReading"]
+                data["delMtrReading"] = r["CurrentUsage"]["delMtrReading"]
         return data
 
     async def __getDataFromApplianceUsage(self, account, lastBilledDate) -> dict:
