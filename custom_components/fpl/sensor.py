@@ -68,4 +68,7 @@ async def async_setup_entry(hass, entry, async_add_devices):
         fpl_accounts.append(DailyAverageKWHSensor(coordinator, entry, account))
         fpl_accounts.append(BillToDateKWHSensor(coordinator, entry, account))
 
+        fpl_accounts.append(NetReceivedKWHSensor(coordinator, entry, account))
+        fpl_accounts.append(NetDeliveredKWHSensor(coordinator, entry, account))
+
     async_add_devices(fpl_accounts)
