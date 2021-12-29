@@ -32,4 +32,26 @@ class BillToDateKWHSensor(FplEnergyEntity):
     def state_class(self) -> str:
         """Return the state class of this entity, from STATE_CLASSES, if any."""
 
-        return STATE_CLASS_TOTAL_INCREASING
+class NetReceivedKWHSensor(FplEntity):
+    def __init__(self, coordinator, config, account):
+        super().__init__(coordinator, config, account, "Received Meter Reading KWH")
+
+    @property
+    def state(self):
+        return self.getData("recMtrReading")
+
+    @property
+    def icon(self):
+        return "mdi:flash"
+
+class NetDeliveredKWHSensor(FplEntity):
+    def __init__(self, coordinator, config, account):
+        super().__init__(coordinator, config, account, "Delivered Meter Reading KWH")
+
+    @property
+    def state(self):
+        return self.getData("delMtrReading")
+
+    @property
+    def icon(self):
+        return "mdi:flash"

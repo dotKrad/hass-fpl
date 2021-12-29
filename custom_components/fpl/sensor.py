@@ -4,6 +4,8 @@ from .sensor_KWHSensor import (
     ProjectedKWHSensor,
     DailyAverageKWHSensor,
     BillToDateKWHSensor,
+    NetReceivedKWHSensor,
+    NetDeliveredKWHSensor,
 )
 from .sensor_DatesSensor import (
     CurrentBillDateSensor,
