@@ -61,7 +61,8 @@ class BillToDateKWHSensor(FplEntity):
         attributes["device_class"] = "energy"
         attributes["state_class"] = "total_increasing"
         attributes["unit_of_measurement"] = "kWh"
-        attributes["last_reset"] = self.getData("billStartDate")
+        if self.getData("billStartDate") is not None:
+            attributes["last_reset"] = self.getData("billStartDate")
         return attributes
 
 class NetReceivedKWHSensor(FplEntity):
@@ -73,7 +74,7 @@ class NetReceivedKWHSensor(FplEntity):
         try:
             return self.getData("recMtrReading")
         except:
-            return 0
+            return None
 
     @property
     def icon(self):
@@ -86,7 +87,8 @@ class NetReceivedKWHSensor(FplEntity):
         attributes["device_class"] = "energy"
         attributes["state_class"] = "total_increasing"
         attributes["unit_of_measurement"] = "kWh"
-        attributes["last_reset"] = self.getData("billStartDate")
+        if self.getData("billStartDate") is not None:
+            attributes["last_reset"] = self.getData("billStartDate")
 
         return attributes
 
@@ -99,7 +101,10 @@ class NetDeliveredKWHSensor(FplEntity):
         try:
             return self.getData("delMtrReading")
         except:
-            return self.getData("billToDateKWH")
+            try:
+                return self.getData("billToDateKWH")
+            except:
+                return None
 
     @property
     def icon(self):
@@ -112,6 +117,7 @@ class NetDeliveredKWHSensor(FplEntity):
         attributes["device_class"] = "energy"
         attributes["state_class"] = "total_increasing"
         attributes["unit_of_measurement"] = "kWh"
-        attributes["last_reset"] = self.getData("billStartDate")
+        if self.getData("billStartDate") is not None:
+            attributes["last_reset"] = self.getData("billStartDate")
 
         return attributes

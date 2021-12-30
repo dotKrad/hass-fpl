@@ -80,7 +80,7 @@ class FplDailyReceivedKWHSensor(FplEntity):
         try:
             return data[-1]["netReceivedKwh"]
         except:
-            return 0
+            return None
 
     def defineAttributes(self):
         """Return the state attributes."""
@@ -113,7 +113,7 @@ class FplDailyDeliveredKWHSensor(FplEntity):
         try: 
             return data[-1]["netDeliveredKwh"]
         except:
-            return 0
+            return None
 
     def defineAttributes(self):
         """Return the state attributes."""
