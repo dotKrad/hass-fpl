@@ -22,3 +22,12 @@ class AllDataSensor(FplEntity):
     @property
     def icon(self):
         return "mdi:currency-usd"
+
+    def defineAttributes(self):
+        """Return the state attributes."""
+        attributes = {}
+        attributes["friendly_name"] = "Budget Projected Bill"
+        attributes["device_class"] = "monitary"
+        attributes["state_class"] = "total"
+        attributes["unit_of_measurement"] = "$"
+        return attributes

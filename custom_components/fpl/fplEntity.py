@@ -20,14 +20,10 @@ class FplEntity(CoordinatorEntity):
         return id
 
     @property
-    def name(self):
-        return f"{DOMAIN.upper()} {self.account} {self.sensorName}"
-
-    @property
     def device_info(self):
         return {
             "identifiers": {(DOMAIN, self.account)},
-            "name": f"Account {self.account}",
+            "name": f"FPL Account {self.account}",
             "model": VERSION,
             "manufacturer": "Florida Power & Light",
         }

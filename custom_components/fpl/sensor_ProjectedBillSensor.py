@@ -18,12 +18,10 @@ class FplProjectedBillSensor(FplEntity):
     def defineAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        try:
-            if self.getData("budget_bill") == True:
-                attributes["budget_bill"] = self.getData("budget_bill")
-        except:
-            pass
-
+        attributes["friendly_name"] = "Projected Bill"
+        attributes["device_class"] = "monitary"
+        attributes["state_class"] = "total"
+        attributes["unit_of_measurement"] = "$"
         return attributes
 
     @property
@@ -38,13 +36,22 @@ class DeferedAmountSensor(FplEntity):
 
     @property
     def state(self):
-        if self.getData("budget_bill") == True:
+        if self.getData("defered_amount") is not None:
             return self.getData("defered_amount")
         return 0
 
     @property
     def icon(self):
         return "mdi:currency-usd"
+
+    def defineAttributes(self):
+        """Return the state attributes."""
+        attributes = {}
+        attributes["friendly_name"] = "Defered Amount"
+        attributes["device_class"] = "monitary"
+        attributes["state_class"] = "total"
+        attributes["unit_of_measurement"] = "$"
+        return attributes
 
 
 class ProjectedBudgetBillSensor(FplEntity):
@@ -59,6 +66,15 @@ class ProjectedBudgetBillSensor(FplEntity):
     def icon(self):
         return "mdi:currency-usd"
 
+    def defineAttributes(self):
+        """Return the state attributes."""
+        attributes = {}
+        attributes["friendly_name"] = "Projected Budget Bill"
+        attributes["device_class"] = "monitary"
+        attributes["state_class"] = "total"
+        attributes['unit_of_measurement'] = "$"
+        return attributes
+
 
 class ProjectedActualBillSensor(FplEntity):
     def __init__(self, coordinator, config, account):
@@ -71,3 +87,13 @@ class ProjectedActualBillSensor(FplEntity):
     @property
     def icon(self):
         return "mdi:currency-usd"
+
+    def defineAttributes(self):
+        """Return the state attributes."""
+        attributes = {}
+        attributes["friendly_name"] = "Projected Actual Bill"
+        attributes["device_class"] = "monitary"
+        attributes["state_class"] = "total"
+        attributes['unit_of_measurement'] = "$"
+        
+        return attributes

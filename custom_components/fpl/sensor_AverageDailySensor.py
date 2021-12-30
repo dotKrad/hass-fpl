@@ -19,6 +19,14 @@ class FplAverageDailySensor(FplEntity):
     def icon(self):
         return "mdi:currency-usd"
 
+    def defineAttributes(self):
+        """Return the state attributes."""
+        attributes = {}
+        attributes["friendly_name"] = "Daily Average"
+        attributes["device_class"] = "monitary"
+        attributes["state_class"] = "total"
+        attributes["unit_of_measurement"] = "$"
+        return attributes
 
 class BudgetDailyAverageSensor(FplEntity):
     def __init__(self, coordinator, config, account):
@@ -32,15 +40,12 @@ class BudgetDailyAverageSensor(FplEntity):
     def icon(self):
         return "mdi:currency-usd"
 
+    def defineAttributes(self):
+        """Return the state attributes."""
+        attributes = {}
+        attributes["friendly_name"] = "Budget Daily Average"
+        attributes["device_class"] = "monitary"
+        attributes["state_class"] = "total"
+        attributes["unit_of_measurement"] = "$"
+        return attributes
 
-class ActualDailyAverageSensor(FplEntity):
-    def __init__(self, coordinator, config, account):
-        super().__init__(coordinator, config, account, "Actual Daily Average")
-
-    @property
-    def state(self):
-        return self.getData("daily_avg")
-
-    @property
-    def icon(self):
-        return "mdi:currency-usd"
