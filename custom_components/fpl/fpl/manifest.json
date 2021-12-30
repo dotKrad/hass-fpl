@@ -1,0 +1,17 @@
+{
+  "domain": "fpl",
+  "name": "FPL",
+  "documentation": "https://github.com/dotKrad/hass-fpl",
+  "iot_class": "cloud_polling",
+  "dependencies": [],
+  "config_flow": true,
+  "codeowners": [
+    "@dotKrad"
+  ],
+  "requirements": [
+    "bs4",
+    "integrationhelper"
+  ],
+  "homeassistant": "0.96.0",
+  "version": "1.0.0"
+}
