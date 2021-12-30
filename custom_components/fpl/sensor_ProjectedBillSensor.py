@@ -18,8 +18,8 @@ class FplProjectedBillSensor(FplEntity):
     def defineAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["friendly_name"] = "Projected Bill"
-        attributes["device_class"] = "monitary"
+        attributes["friendly_name"] = "Projected Bill Payment Due"
+        attributes["device_class"] = "monetary"
         attributes["state_class"] = "total"
         attributes["unit_of_measurement"] = "$"
         return attributes
@@ -32,12 +32,12 @@ class FplProjectedBillSensor(FplEntity):
 # Defered Amount
 class DeferedAmountSensor(FplEntity):
     def __init__(self, coordinator, config, account):
-        super().__init__(coordinator, config, account, "Defered Amount")
+        super().__init__(coordinator, config, account, "Deferred Amount")
 
     @property
     def state(self):
-        if self.getData("defered_amount") is not None:
-            return self.getData("defered_amount")
+        if self.getData("deferred_amount") is not None:
+            return self.getData("deferred_amount")
         return 0
 
     @property
@@ -47,8 +47,8 @@ class DeferedAmountSensor(FplEntity):
     def defineAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["friendly_name"] = "Defered Amount"
-        attributes["device_class"] = "monitary"
+        attributes["friendly_name"] = "Deferred Amount"
+        attributes["device_class"] = "monetary"
         attributes["state_class"] = "total"
         attributes["unit_of_measurement"] = "$"
         return attributes

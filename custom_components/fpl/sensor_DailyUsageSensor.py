@@ -9,7 +9,7 @@ class FplDailyUsageSensor(FplEntity):
     def state(self):
         data = self.getData("daily_usage")
 
-        if ((data is not None) and (len(data) > 0)):
+        if (data is not None) and (len(data) > 0):
             return data[-1]["cost"]
 
         return None
@@ -22,8 +22,11 @@ class FplDailyUsageSensor(FplEntity):
         attributes["device_class"] = "monetary"
         attributes["state_class"] = "total_increasing"
         attributes["unit_of_measurement"] = "$"
-        if ((data is not None) and (data[-1]["cost"] is not None)):
-            attributes["date"] = data[-1]["readTime"]
+        if data is not None:
+            if (data[-1] is not None) and (data[-1]["readTime"] is not None):
+                attributes["date"] = data[-1]["readTime"]
+            if (data[-2] is not None) and (data[-2]["readTime"] is not None):
+                attributes["last_reset"] = data[-2]["readTime"]
         return attributes
 
     @property
@@ -39,7 +42,7 @@ class FplDailyUsageKWHSensor(FplEntity):
     def state(self):
         data = self.getData("daily_usage")
 
-        if ((data is not None) and (data[-1]["usage"] is not None)):
+        if (data is not None) and (data[-1]["usage"] is not None):
             return data[-1]["usage"]
 
         return None
@@ -55,16 +58,17 @@ class FplDailyUsageKWHSensor(FplEntity):
         attributes["unit_of_measurement"] = "kWh"
 
         if data is not None:
-            if ((data[-1] is not None) and (data[-1]["readTime"] is not None)):
+            if (data[-1] is not None) and (data[-1]["readTime"] is not None):
                 attributes["date"] = data[-1]["readTime"]
-            if ((data[-2] is not None) and (data[-2]["readTime"] is not None)):
+            if (data[-2] is not None) and (data[-2]["readTime"] is not None):
                 attributes["last_reset"] = data[-2]["readTime"]
-        
+
         return attributes
 
     @property
     def icon(self):
         return "mdi:flash"
+
 
 class FplDailyReceivedKWHSensor(FplEntity):
     def __init__(self, coordinator, config, account):
@@ -73,7 +77,10 @@ class FplDailyReceivedKWHSensor(FplEntity):
     @property
     def state(self):
         data = self.getData("daily_usage")
-        return data[-1]["netReceivedKwh"]
+        try:
+            return data[-1]["netReceivedKwh"]
+        except:
+            return 0
 
     def defineAttributes(self):
         """Return the state attributes."""
@@ -84,14 +91,17 @@ class FplDailyReceivedKWHSensor(FplEntity):
         attributes["device_class"] = "energy"
         attributes["state_class"] = "total_increasing"
         attributes["unit_of_measurement"] = "kWh"
-        attributes["date"] = data[-1]["readTime"]
-        attributes["last_reset"] = data[-2]["readTime"]
+        if data is not None:
+            if (data[-1] is not None) and (data[-1]["readTime"] is not None):
+                attributes["date"] = data[-1]["readTime"]
+            if (data[-2] is not None) and (data[-2]["readTime"] is not None):
+                attributes["last_reset"] = data[-2]["readTime"]
         return attributes
-
 
     @property
     def icon(self):
         return "mdi:flash"
+
 
 class FplDailyDeliveredKWHSensor(FplEntity):
     def __init__(self, coordinator, config, account):
@@ -100,7 +110,7 @@ class FplDailyDeliveredKWHSensor(FplEntity):
     @property
     def state(self):
         data = self.getData("daily_usage")
-        return   data[-1]["netDeliveredKwh"]
+        return data[-1]["netDeliveredKwh"]
 
     def defineAttributes(self):
         """Return the state attributes."""
@@ -111,8 +121,11 @@ class FplDailyDeliveredKWHSensor(FplEntity):
         attributes["device_class"] = "energy"
         attributes["state_class"] = "total_increasing"
         attributes["unit_of_measurement"] = "kWh"
-        attributes["date"] = data[-1]["readTime"]
-        attributes["last_reset"] = data[-2]["readTime"]
+        if data is not None:
+            if (data[-1] is not None) and (data[-1]["readTime"] is not None):
+                attributes["date"] = data[-1]["readTime"]
+            if (data[-2] is not None) and (data[-2]["readTime"] is not None):
+                attributes["last_reset"] = data[-2]["readTime"]
         return attributes
 
     @property

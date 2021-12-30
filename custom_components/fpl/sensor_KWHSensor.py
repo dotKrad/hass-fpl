@@ -17,7 +17,7 @@ class ProjectedKWHSensor(FplEntity):
         attributes = {}
         attributes["friendly_name"] = "Projected KWH"
         attributes["device_class"] = "energy"
-        attributes["state_class"] = "total_increasing"
+        attributes["state_class"] = "total"
         attributes["unit_of_measurement"] = "kWh"
         return attributes
 
@@ -38,7 +38,7 @@ class DailyAverageKWHSensor(FplEntity):
         attributes = {}
         attributes["friendly_name"] = "Daily Average"
         attributes["device_class"] = "energy"
-        attributes["state_class"] = "total_increasing"
+        attributes["state_class"] = "total"
         attributes["unit_of_measurement"] = "kWh"
         return attributes
 
@@ -57,10 +57,11 @@ class BillToDateKWHSensor(FplEntity):
     def defineAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["friendly_name"] = "Bill To Date"
+        attributes["friendly_name"] = "Billing Usage"
         attributes["device_class"] = "energy"
         attributes["state_class"] = "total_increasing"
         attributes["unit_of_measurement"] = "kWh"
+        attributes["last_reset"] = self.getData("billStartDate")
         return attributes
 
 class NetReceivedKWHSensor(FplEntity):
@@ -69,7 +70,10 @@ class NetReceivedKWHSensor(FplEntity):
 
     @property
     def state(self):
-        return self.getData("recMtrReading")
+        try:
+            return self.getData("recMtrReading")
+        except:
+            return 0
 
     @property
     def icon(self):
@@ -92,7 +96,10 @@ class NetDeliveredKWHSensor(FplEntity):
 
     @property
     def state(self):
-        return self.getData("delMtrReading")
+        try:
+            return self.getData("delMtrReading")
+        except:
+            return self.getData("billToDateKWH")
 
     @property
     def icon(self):

@@ -27,7 +27,7 @@ class AllDataSensor(FplEntity):
         """Return the state attributes."""
         attributes = {}
         attributes["friendly_name"] = "Budget Projected Bill"
-        attributes["device_class"] = "monitary"
+        attributes["device_class"] = "monetary"
         attributes["state_class"] = "total"
         attributes["unit_of_measurement"] = "$"
         return attributes

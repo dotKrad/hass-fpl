@@ -23,7 +23,7 @@ class FplAverageDailySensor(FplEntity):
         """Return the state attributes."""
         attributes = {}
         attributes["friendly_name"] = "Daily Average"
-        attributes["device_class"] = "monitary"
+        attributes["device_class"] = "monetary"
         attributes["state_class"] = "total"
         attributes["unit_of_measurement"] = "$"
         return attributes
