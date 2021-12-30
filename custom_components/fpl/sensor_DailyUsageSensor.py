@@ -110,7 +110,10 @@ class FplDailyDeliveredKWHSensor(FplEntity):
     @property
     def state(self):
         data = self.getData("daily_usage")
-        return data[-1]["netDeliveredKwh"]
+        try: 
+            return data[-1]["netDeliveredKwh"]
+        except:
+            return 0
 
     def defineAttributes(self):
         """Return the state attributes."""
