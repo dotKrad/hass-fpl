@@ -12,6 +12,6 @@
     "bs4",
     "integrationhelper"
   ],
-  "homeassistant": "0.96.0",
+  "homeassistant": "2021.12.7",
   "version": "1.0.0"
 }

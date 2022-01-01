@@ -7,7 +7,11 @@ class CurrentBillDateSensor(FplEntity):
 
     @property
     def state(self):
-        return datetime.date.fromisoformat(self.getData("current_bill_date"))
+        try:
+            self._state= datetime.date.fromisoformat(self.getData("current_bill_date"))
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):
@@ -26,7 +30,11 @@ class NextBillDateSensor(FplEntity):
 
     @property
     def state(self):
-        return datetime.date.fromisoformat(self.getData("next_bill_date"))
+        try:
+            self._state= datetime.date.fromisoformat(self.getData("next_bill_date"))
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):
@@ -45,7 +53,11 @@ class ServiceDaysSensor(FplEntity):
 
     @property
     def state(self):
-        return self.getData("service_days")
+        try:
+            self._state= self.getData("service_days")
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):
@@ -64,7 +76,11 @@ class AsOfDaysSensor(FplEntity):
 
     @property
     def state(self):
-        return self.getData("as_of_days")
+        try:
+            self._state= self.getData("as_of_days")
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):
@@ -83,7 +99,11 @@ class RemainingDaysSensor(FplEntity):
 
     @property
     def state(self):
-        return self.getData("remaining_days")
+        try:
+            self._state= self.getData("remaining_days")
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):

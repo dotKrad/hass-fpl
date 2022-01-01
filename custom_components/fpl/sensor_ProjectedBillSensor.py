@@ -10,10 +10,14 @@ class FplProjectedBillSensor(FplEntity):
         budget = self.getData("budget_bill")
         budget_billing_projected_bill = self.getData("budget_billing_projected_bill")
 
-        if budget == True and budget_billing_projected_bill is not None:
-            return self.getData("budget_billing_projected_bill")
-
-        return self.getData("projected_bill")
+        try:
+            if budget == True and budget_billing_projected_bill is not None:
+                self._state = self.getData("budget_billing_projected_bill")
+            else:
+                self._state = self.getData("projected_bill")
+        except:
+            self._state = None
+        return self._state
 
     def defineAttributes(self):
         """Return the state attributes."""
@@ -36,9 +40,12 @@ class DeferedAmountSensor(FplEntity):
 
     @property
     def state(self):
-        if self.getData("deferred_amount") is not None:
-            return self.getData("deferred_amount")
-        return 0
+        try:
+            self._state = self.getData("deferred_amount")
+        except:
+            self._state = 0
+            pass
+        return self._state
 
     @property
     def icon(self):
@@ -60,7 +67,11 @@ class ProjectedBudgetBillSensor(FplEntity):
 
     @property
     def state(self):
-        return self.getData("budget_billing_projected_bill")
+        try:
+            self._state = self.getData("budget_billing_projected_bill")
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):
@@ -72,7 +83,7 @@ class ProjectedBudgetBillSensor(FplEntity):
         attributes["friendly_name"] = "Projected Budget Bill"
         attributes["device_class"] = "monitary"
         attributes["state_class"] = "total"
-        attributes['unit_of_measurement'] = "$"
+        attributes["unit_of_measurement"] = "$"
         return attributes
 
 
@@ -82,7 +93,11 @@ class ProjectedActualBillSensor(FplEntity):
 
     @property
     def state(self):
-        return self.getData("projected_bill")
+        try:
+            self._state = self.getData("projected_bill")
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):
@@ -94,6 +109,6 @@ class ProjectedActualBillSensor(FplEntity):
         attributes["friendly_name"] = "Projected Actual Bill"
         attributes["device_class"] = "monitary"
         attributes["state_class"] = "total"
-        attributes['unit_of_measurement'] = "$"
-        
+        attributes["unit_of_measurement"] = "$"
+
         return attributes

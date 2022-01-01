@@ -13,7 +13,11 @@ class FplAverageDailySensor(FplEntity):
         if budget == True and budget_billing_projected_bill is not None:
             return self.getData("budget_billing_daily_avg")
 
-        return self.getData("daily_avg")
+        try:
+            self._state=self.getData("daily_avg")
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):
@@ -34,7 +38,11 @@ class BudgetDailyAverageSensor(FplEntity):
 
     @property
     def state(self):
-        return self.getData("budget_billing_daily_avg")
+        try:
+            self._state= self.getData("budget_billing_daily_avg")
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):

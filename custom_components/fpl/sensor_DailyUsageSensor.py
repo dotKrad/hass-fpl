@@ -9,10 +9,11 @@ class FplDailyUsageSensor(FplEntity):
     def state(self):
         data = self.getData("daily_usage")
 
-        if (data is not None) and (len(data) > 0):
-            return data[-1]["cost"]
-
-        return None
+        try:
+            self._state = data[-1]["cost"]
+        except:
+            pass
+        return self._state
 
     def defineAttributes(self):
         """Return the state attributes."""
@@ -23,9 +24,17 @@ class FplDailyUsageSensor(FplEntity):
         attributes["state_class"] = "total_increasing"
         attributes["unit_of_measurement"] = "$"
         if data is not None:
-            if (data[-1] is not None) and (data[-1]["readTime"] is not None):
+            if (
+                (len(data) > 0)
+                and (data[-1] is not None)
+                and (data[-1]["readTime"] is not None)
+            ):
                 attributes["date"] = data[-1]["readTime"]
-            if (data[-2] is not None) and (data[-2]["readTime"] is not None):
+            if (
+                (len(data) > 1)
+                and (data[-2] is not None)
+                and (data[-2]["readTime"] is not None)
+            ):
                 attributes["last_reset"] = data[-2]["readTime"]
         return attributes
 
@@ -42,10 +51,11 @@ class FplDailyUsageKWHSensor(FplEntity):
     def state(self):
         data = self.getData("daily_usage")
 
-        if (data is not None) and (data[-1]["usage"] is not None):
-            return data[-1]["usage"]
-
-        return None
+        try:
+            self._state = data[-1]["usage"]
+        except:
+            pass
+        return self._state
 
     def defineAttributes(self):
         """Return the state attributes."""
@@ -58,9 +68,17 @@ class FplDailyUsageKWHSensor(FplEntity):
         attributes["unit_of_measurement"] = "kWh"
 
         if data is not None:
-            if (data[-1] is not None) and (data[-1]["readTime"] is not None):
+            if (
+                (len(data) > 0)
+                and (data[-1] is not None)
+                and (data[-1]["readTime"] is not None)
+            ):
                 attributes["date"] = data[-1]["readTime"]
-            if (data[-2] is not None) and (data[-2]["readTime"] is not None):
+            if (
+                (len(data) > 1)
+                and (data[-2] is not None)
+                and (data[-2]["readTime"] is not None)
+            ):
                 attributes["last_reset"] = data[-2]["readTime"]
 
         return attributes
@@ -78,9 +96,10 @@ class FplDailyReceivedKWHSensor(FplEntity):
     def state(self):
         data = self.getData("daily_usage")
         try:
-            return data[-1]["netReceivedKwh"]
+            self._state = data[-1]["netReceivedKwh"]
         except:
-            return None
+            pass
+        return self._state
 
     def defineAttributes(self):
         """Return the state attributes."""
@@ -92,9 +111,17 @@ class FplDailyReceivedKWHSensor(FplEntity):
         attributes["state_class"] = "total_increasing"
         attributes["unit_of_measurement"] = "kWh"
         if data is not None:
-            if (data[-1] is not None) and (data[-1]["readTime"] is not None):
+            if (
+                (len(data) > 0)
+                and (data[-1] is not None)
+                and (data[-1]["readTime"] is not None)
+            ):
                 attributes["date"] = data[-1]["readTime"]
-            if (data[-2] is not None) and (data[-2]["readTime"] is not None):
+            if (
+                (len(data) > 1)
+                and (data[-2] is not None)
+                and (data[-2]["readTime"] is not None)
+            ):
                 attributes["last_reset"] = data[-2]["readTime"]
         return attributes
 
@@ -110,10 +137,11 @@ class FplDailyDeliveredKWHSensor(FplEntity):
     @property
     def state(self):
         data = self.getData("daily_usage")
-        try: 
-            return data[-1]["netDeliveredKwh"]
+        try:
+            self._state = data[-1]["netDeliveredKwh"]
         except:
-            return None
+            pass
+        return self._state
 
     def defineAttributes(self):
         """Return the state attributes."""
@@ -125,9 +153,17 @@ class FplDailyDeliveredKWHSensor(FplEntity):
         attributes["state_class"] = "total_increasing"
         attributes["unit_of_measurement"] = "kWh"
         if data is not None:
-            if (data[-1] is not None) and (data[-1]["readTime"] is not None):
+            if (
+                (len(data) > 0)
+                and (data[-1] is not None)
+                and (data[-1]["readTime"] is not None)
+            ):
                 attributes["date"] = data[-1]["readTime"]
-            if (data[-2] is not None) and (data[-2]["readTime"] is not None):
+            if (
+                (len(data) > 1)
+                and (data[-2] is not None)
+                and (data[-2]["readTime"] is not None)
+            ):
                 attributes["last_reset"] = data[-2]["readTime"]
         return attributes
 

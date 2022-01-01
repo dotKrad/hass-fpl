@@ -7,11 +7,16 @@ class ProjectedKWHSensor(FplEntity):
 
     @property
     def state(self):
-        return self.getData("projectedKWH")
+        try:
+            self._state = self.getData("projectedKWH")
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):
         return "mdi:flash"
+
     def defineAttributes(self):
         """Return the state attributes."""
         attributes = {}
@@ -21,13 +26,18 @@ class ProjectedKWHSensor(FplEntity):
         attributes["unit_of_measurement"] = "kWh"
         return attributes
 
+
 class DailyAverageKWHSensor(FplEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Average")
 
     @property
     def state(self):
-        return self.getData("dailyAverageKWH")
+        try:
+            self._state = self.getData("dailyAverageKWH")
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):
@@ -42,13 +52,18 @@ class DailyAverageKWHSensor(FplEntity):
         attributes["unit_of_measurement"] = "kWh"
         return attributes
 
+
 class BillToDateKWHSensor(FplEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Bill To Date")
 
     @property
     def state(self):
-        return self.getData("billToDateKWH")
+        try:
+            self._state = self.getData("billToDateKWH")
+        except:
+            pass
+        return self._state
 
     @property
     def icon(self):
@@ -65,6 +80,7 @@ class BillToDateKWHSensor(FplEntity):
             attributes["last_reset"] = self.getData("billStartDate")
         return attributes
 
+
 class NetReceivedKWHSensor(FplEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Received Reading")
@@ -72,9 +88,10 @@ class NetReceivedKWHSensor(FplEntity):
     @property
     def state(self):
         try:
-            return self.getData("recMtrReading")
+            self._state = self.getData("recMtrReading")
         except:
-            return None
+            pass
+        return self._state
 
     @property
     def icon(self):
@@ -92,6 +109,7 @@ class NetReceivedKWHSensor(FplEntity):
 
         return attributes
 
+
 class NetDeliveredKWHSensor(FplEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Delivered Reading")
@@ -99,12 +117,13 @@ class NetDeliveredKWHSensor(FplEntity):
     @property
     def state(self):
         try:
-            return self.getData("delMtrReading")
+            self._state = self.getData("delMtrReading")
         except:
             try:
-                return self.getData("billToDateKWH")
+                self._state = self.getData("billToDateKWH")
             except:
-                return None
+                pass
+        return self._state
 
     @property
     def icon(self):

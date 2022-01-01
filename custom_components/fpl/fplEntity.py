@@ -24,7 +24,8 @@ class FplEntity(CoordinatorEntity):
         return {
             "identifiers": {(DOMAIN, self.account)},
             "name": f"FPL Account {self.account}",
-            "model": VERSION,
+            "model": "FPL Monitoring API",
+            "sw_version": VERSION,
             "manufacturer": "Florida Power & Light",
         }
 
