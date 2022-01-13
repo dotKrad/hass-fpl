@@ -11,7 +11,6 @@
   "requirements": [
     "integrationhelper"
   ],
-  "homeassistant": "0.96.0",
   "version": "1.0.0",
   "issue_tracker": "https://github.com/dotKrad/hass-fpl/issues"
 }
