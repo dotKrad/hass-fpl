@@ -28,7 +28,6 @@ from .sensor_AverageDailySensor import (
 from .sensor_DailyUsageSensor import FplDailyUsageKWHSensor, FplDailyUsageSensor
 from .const import DOMAIN
 
-from .sensor_AllData import AllDataSensor
 from .TestSensor import TestSensor
 
 
@@ -42,8 +41,6 @@ async def async_setup_entry(hass, entry, async_add_devices):
     for account in accounts:
         # Test Sensor
         # fpl_accounts.append(TestSensor(coordinator, entry, account))
-        # All data sensor
-        # fpl_accounts.append(AllDataSensor(coordinator, entry, account))
 
         # bill sensors
         fpl_accounts.append(FplProjectedBillSensor(coordinator, entry, account))
@@ -70,5 +67,8 @@ async def async_setup_entry(hass, entry, async_add_devices):
         fpl_accounts.append(ProjectedKWHSensor(coordinator, entry, account))
         fpl_accounts.append(DailyAverageKWHSensor(coordinator, entry, account))
         fpl_accounts.append(BillToDateKWHSensor(coordinator, entry, account))
+
+        fpl_accounts.append(NetReceivedKWHSensor(coordinator, entry, account))
+        fpl_accounts.append(NetDeliveredKWHSensor(coordinator, entry, account))
 
     async_add_devices(fpl_accounts)

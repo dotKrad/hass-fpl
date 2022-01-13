@@ -1,7 +1,7 @@
-from .fplEntity import FplEntity
+from .fplEntity import FplMoneyEntity
 
 
-class FplAverageDailySensor(FplEntity):
+class FplAverageDailySensor(FplMoneyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Average")
 
@@ -15,12 +15,8 @@ class FplAverageDailySensor(FplEntity):
 
         return self.getData("daily_avg")
 
-    @property
-    def icon(self):
-        return "mdi:currency-usd"
 
-
-class BudgetDailyAverageSensor(FplEntity):
+class BudgetDailyAverageSensor(FplMoneyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Budget Daily Average")
 
@@ -28,19 +24,11 @@ class BudgetDailyAverageSensor(FplEntity):
     def state(self):
         return self.getData("budget_billing_daily_avg")
 
-    @property
-    def icon(self):
-        return "mdi:currency-usd"
 
-
-class ActualDailyAverageSensor(FplEntity):
+class ActualDailyAverageSensor(FplMoneyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Actual Daily Average")
 
     @property
     def state(self):
         return self.getData("daily_avg")
-
-    @property
-    def icon(self):
-        return "mdi:currency-usd"

@@ -1,7 +1,7 @@
-from .fplEntity import FplEntity
+from .fplEntity import FplEnergyEntity, FplMoneyEntity
 
 
-class FplDailyUsageSensor(FplEntity):
+class FplDailyUsageSensor(FplMoneyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Usage")
 
@@ -23,12 +23,8 @@ class FplDailyUsageSensor(FplEntity):
 
         return {}
 
-    @property
-    def icon(self):
-        return "mdi:currency-usd"
 
-
-class FplDailyUsageKWHSensor(FplEntity):
+class FplDailyUsageKWHSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Usage KWH")
 
@@ -49,7 +45,3 @@ class FplDailyUsageKWHSensor(FplEntity):
             return {"date": data[-1]["date"]}
 
         return {}
-
-    @property
-    def icon(self):
-        return "mdi:currency-usd"
