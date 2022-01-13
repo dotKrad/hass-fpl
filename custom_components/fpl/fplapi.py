@@ -1,13 +1,12 @@
+"""Custom FPl api client"""
+from asyncio import exceptions as asyncio_exceptions
 import logging
 from datetime import datetime
 
+import sys
+import json
 import aiohttp
 import async_timeout
-import json
-import sys
-
-
-# from bs4 import BeautifulSoup
 
 STATUS_CATEGORY_OPEN = "OPEN"
 # Api login result
@@ -20,16 +19,38 @@ LOGIN_RESULT_FAILURE = "FAILURE"
 _LOGGER = logging.getLogger(__package__)
 TIMEOUT = 30
 
-URL_LOGIN = "https://www.fpl.com/api/resources/login"
-URL_RESOURCES_HEADER = "https://www.fpl.com/api/resources/header"
-URL_RESOURCES_ACCOUNT = "https://www.fpl.com/api/resources/account/{account}"
-URL_RESOURCES_PROJECTED_BILL = "https://www.fpl.com/api/resources/account/{account}/projectedBill?premiseNumber={premise}&lastBilledDate={lastBillDate}"
+API_HOST = "https://www.fpl.com"
+
+URL_LOGIN = API_HOST + "/api/resources/login"
+URL_LOGOUT = API_HOST + "/api/resources/logout"
+URL_RESOURCES_HEADER = API_HOST + "/api/resources/header"
+URL_RESOURCES_ACCOUNT = API_HOST + "/api/resources/account/{account}"
+URL_BUDGET_BILLING_GRAPH = (
+    API_HOST + "/api/resources/account/{account}/budgetBillingGraph"
+)
+
+URL_RESOURCES_PROJECTED_BILL = (
+    API_HOST
+    + "/api/resources/account/{account}/projectedBill"
+    + "?premiseNumber={premise}&lastBilledDate={lastBillDate}"
+)
+
+URL_ENERGY_SERVICE = (
+    API_HOST + "/dashboard-api/resources/account/{account}/energyService/{account}"
+)
+URL_APPLIANCE_USAGE = (
+    API_HOST + "/dashboard-api/resources/account/{account}/applianceUsage/{account}"
+)
+URL_BUDGET_BILLING_PREMISE_DETAILS = (
+    API_HOST + "/api/resources/account/{account}/budgetBillingGraph/premiseDetails"
+)
+
 
 ENROLLED = "ENROLLED"
 NOTENROLLED = "NOTENROLLED"
 
 
-class FplApi(object):
+class FplApi:
     """A class for getting energy usage information from Florida Power & Light."""
 
     def __init__(self, username, password, session):
@@ -39,7 +60,7 @@ class FplApi(object):
         self._session = session
 
     async def async_get_data(self) -> dict:
-        # self._session = aiohttp.ClientSession()
+        """Get data from fpl api"""
         data = {}
         data["accounts"] = []
         if await self.login() == LOGIN_RESULT_OK:
@@ -47,121 +68,129 @@ class FplApi(object):
 
             data["accounts"] = accounts
             for account in accounts:
-                accountData = await self.__async_get_data(account)
-                data[account] = accountData
+                account_data = await self.__async_get_data(account)
+                data[account] = account_data
 
             await self.logout()
         return data
 
     async def login(self):
+        """login into fpl"""
         _LOGGER.info("Logging in")
         # login and get account information
-        result = LOGIN_RESULT_OK
         try:
             async with async_timeout.timeout(TIMEOUT):
                 response = await self._session.get(
                     URL_LOGIN, auth=aiohttp.BasicAuth(self._username, self._password)
                 )
 
-            js = json.loads(await response.text())
+            if response.status == 200:
+                _LOGGER.info("Logging Successful")
+                return LOGIN_RESULT_OK
 
-            if response.reason == "Unauthorized":
-                result = LOGIN_RESULT_UNAUTHORIZED
+            if response.status == 401:
+                _LOGGER.error("Logging Unauthorized")
+                json_data = json.loads(await response.text())
 
-            if js["messages"][0]["messageCode"] != "login.success":
-                _LOGGER.error(f"Logging Failure")
-                result = LOGIN_RESULT_FAILURE
+                if json_data["messageCode"] == LOGIN_RESULT_INVALIDUSER:
+                    return LOGIN_RESULT_INVALIDUSER
 
-            _LOGGER.info(f"Logging Successful")
+                if json_data["messageCode"] == LOGIN_RESULT_INVALIDPASSWORD:
+                    return LOGIN_RESULT_INVALIDPASSWORD
 
-        except Exception as e:
-            _LOGGER.error(f"Error {e} : {sys.exc_info()[0]}")
-            result = LOGIN_RESULT_FAILURE
+        except asyncio_exceptions as exception:
+            _LOGGER.error("Error %s : %s", exception, sys.exc_info()[0])
+            return LOGIN_RESULT_FAILURE
 
-        return result
+        return LOGIN_RESULT_FAILURE
 
     async def logout(self):
+        """Logging out from fpl"""
         _LOGGER.info("Logging out")
-        URL = "https://www.fpl.com/api/resources/logout"
-        async with async_timeout.timeout(TIMEOUT):
-            await self._session.get(URL)
+        try:
+            async with async_timeout.timeout(TIMEOUT):
+                await self._session.get(URL_LOGOUT)
+        except asyncio_exceptions:
+            pass
 
     async def async_get_open_accounts(self):
-        _LOGGER.info(f"Getting accounts")
+        """Getting open accounts"""
+        _LOGGER.info("Getting open accounts")
         result = []
 
         try:
             async with async_timeout.timeout(TIMEOUT):
                 response = await self._session.get(URL_RESOURCES_HEADER)
 
-            js = await response.json()
-            accounts = js["data"]["accounts"]["data"]["data"]
+            json_data = await response.json()
+            accounts = json_data["data"]["accounts"]["data"]["data"]
 
             for account in accounts:
                 if account["statusCategory"] == STATUS_CATEGORY_OPEN:
                     result.append(account["accountNumber"])
-        except Exception as e:
-            _LOGGER.error(f"Getting accounts {e}")
 
-        # self._account_number = js["data"]["selectedAccount"]["data"]["accountNumber"]
-        # self._premise_number = js["data"]["selectedAccount"]["data"]["acctSecSettings"]["premiseNumber"]
+        except asyncio_exceptions as exception:
+            _LOGGER.error("Getting accounts %s", exception)
+
         return result
 
     async def __async_get_data(self, account) -> dict:
-        _LOGGER.info(f"Getting Data")
+        """Get data from resources endpoint"""
+        _LOGGER.info("Getting Data")
         data = {}
 
         async with async_timeout.timeout(TIMEOUT):
             response = await self._session.get(
                 URL_RESOURCES_ACCOUNT.format(account=account)
             )
-        accountData = (await response.json())["data"]
+        account_data = (await response.json())["data"]
 
-        premise = accountData["premiseNumber"].zfill(9)
+        premise = account_data["premiseNumber"].zfill(9)
 
         # currentBillDate
         currentBillDate = datetime.strptime(
-            accountData["currentBillDate"].replace("-", "").split("T")[0], "%Y%m%d"
+            account_data["currentBillDate"].replace("-", "").split("T")[0], "%Y%m%d"
         ).date()
 
         # nextBillDate
         nextBillDate = datetime.strptime(
-            accountData["nextBillDate"].replace("-", "").split("T")[0], "%Y%m%d"
+            account_data["nextBillDate"].replace("-", "").split("T")[0], "%Y%m%d"
         ).date()
 
         data["current_bill_date"] = str(currentBillDate)
         data["next_bill_date"] = str(nextBillDate)
 
         today = datetime.now().date()
-        remaining = (nextBillDate - today).days
-        days = (today - currentBillDate).days
 
         data["service_days"] = (nextBillDate - currentBillDate).days
-        data["as_of_days"] = days
-        data["remaining_days"] = remaining
+        data["as_of_days"] = (today - currentBillDate).days
+        data["remaining_days"] = (nextBillDate - today).days
 
         # zip code
-        zip_code = accountData["serviceAddress"]["zip"]
+        # zip_code = accountData["serviceAddress"]["zip"]
 
         # projected bill
         pbData = await self.__getFromProjectedBill(account, premise, currentBillDate)
         data.update(pbData)
 
         # programs
-        programsData = accountData["programs"]["data"]
+        programsData = account_data["programs"]["data"]
 
         programs = dict()
-        _LOGGER.info(f"Getting Programs")
+        _LOGGER.info("Getting Programs")
         for program in programsData:
             if "enrollmentStatus" in program.keys():
                 key = program["name"]
                 programs[key] = program["enrollmentStatus"] == ENROLLED
 
-        if programs["BBL"]:
+        def hasProgram(programName) -> bool:
+            return programName in programs.keys() and programs[programName]
+
+        if hasProgram("BBL"):
             # budget billing
             data["budget_bill"] = True
-            bblData = await self.__getBBL_async(account, data)
-            data.update(bblData)
+            bbl_data = await self.__getBBL_async(account, data)
+            data.update(bbl_data)
 
         data.update(
             await self.__getDataFromEnergyService(account, premise, currentBillDate)
@@ -171,6 +200,7 @@ class FplApi(object):
         return data
 
     async def __getFromProjectedBill(self, account, premise, currentBillDate) -> dict:
+        """get data from projected bill endpoint"""
         data = {}
 
         try:
@@ -196,24 +226,26 @@ class FplApi(object):
                 data["projected_bill"] = projectedBill
                 data["daily_avg"] = dailyAvg
                 data["avg_high_temp"] = avgHighTemp
-        except:
+
+        except asyncio_exceptions:
             pass
 
         return data
 
     async def __getBBL_async(self, account, projectedBillData) -> dict:
-        _LOGGER.info(f"Getting budget billing data")
+        """Get budget billing data"""
+        _LOGGER.info("Getting budget billing data")
         data = {}
-
-        URL = "https://www.fpl.com/api/resources/account/{account}/budgetBillingGraph/premiseDetails"
         try:
             async with async_timeout.timeout(TIMEOUT):
-                response = await self._session.get(URL.format(account=account))
+                response = await self._session.get(
+                    URL_BUDGET_BILLING_PREMISE_DETAILS.format(account=account)
+                )
                 if response.status == 200:
                     r = (await response.json())["data"]
                     dataList = r["graphData"]
 
-                    startIndex = len(dataList) - 1
+                    # startIndex = len(dataList) - 1
 
                     billingCharge = 0
                     budgetBillDeferBalance = r["defAmt"]
@@ -235,19 +267,19 @@ class FplApi(object):
                     data["budget_billing_bill_to_date"] = bbAsOfDateAmt
 
                     data["budget_billing_projected_bill"] = float(projectedBudgetBill)
-        except:
+        except asyncio_exceptions:
             pass
-
-        URL = "https://www.fpl.com/api/resources/account/{account}/budgetBillingGraph"
 
         try:
             async with async_timeout.timeout(TIMEOUT):
-                response = await self._session.get(URL.format(account=account))
+                response = await self._session.get(
+                    URL_BUDGET_BILLING_GRAPH.format(account=account)
+                )
                 if response.status == 200:
                     r = (await response.json())["data"]
                     data["bill_to_date"] = float(r["eleAmt"])
                     data["defered_amount"] = float(r["defAmt"])
-        except:
+        except asyncio_exceptions:
             pass
 
         return data
@@ -255,8 +287,7 @@ class FplApi(object):
     async def __getDataFromEnergyService(
         self, account, premise, lastBilledDate
     ) -> dict:
-        _LOGGER.info(f"Getting data from energy service")
-        URL = "https://www.fpl.com/dashboard-api/resources/account/{account}/energyService/{account}"
+        _LOGGER.info("Getting data from energy service")
 
         date = str(lastBilledDate.strftime("%m%d%Y"))
         JSON = {
@@ -278,7 +309,9 @@ class FplApi(object):
         data = {}
 
         async with async_timeout.timeout(TIMEOUT):
-            response = await self._session.post(URL.format(account=account), json=JSON)
+            response = await self._session.post(
+                URL_ENERGY_SERVICE.format(account=account), json=JSON
+            )
             if response.status == 200:
                 r = (await response.json())["data"]
                 dailyUsage = []
@@ -313,14 +346,15 @@ class FplApi(object):
         return data
 
     async def __getDataFromApplianceUsage(self, account, lastBilledDate) -> dict:
-        _LOGGER.info(f"Getting data from applicance usage")
-        URL = "https://www.fpl.com/dashboard-api/resources/account/{account}/applianceUsage/{account}"
+        """get data from appliance usage"""
+        _LOGGER.info("Getting data from appliance usage")
+
         JSON = {"startDate": str(lastBilledDate.strftime("%m%d%Y"))}
         data = {}
         try:
             async with async_timeout.timeout(TIMEOUT):
                 response = await self._session.post(
-                    URL.format(account=account), json=JSON
+                    URL_APPLIANCE_USAGE.format(account=account), json=JSON
                 )
                 if response.status == 200:
                     electric = (await response.json())["data"]["electric"]
@@ -334,7 +368,7 @@ class FplApi(object):
                             rr = full
                         data[e["category"].replace(" ", "_")] = rr
 
-        except:
+        except asyncio_exceptions:
             pass
 
         return {"energy_percent_by_applicance": data}
