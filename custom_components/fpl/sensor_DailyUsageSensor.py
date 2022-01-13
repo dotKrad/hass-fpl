@@ -9,7 +9,7 @@ class FplDailyUsageSensor(FplMoneyEntity):
     def state(self):
         data = self.getData("daily_usage")
 
-        if len(data) > 0:
+        if data is not None and len(data) > 0 and "cost" in data[-1].keys():
             return data[-1]["cost"]
 
         return None
@@ -18,7 +18,7 @@ class FplDailyUsageSensor(FplMoneyEntity):
         """Return the state attributes."""
         data = self.getData("daily_usage")
 
-        if len(data) > 0:
+        if data is not None and len(data) > 0 and "date" in data[-1].keys():
             return {"date": data[-1]["date"]}
 
         return {}
@@ -32,7 +32,7 @@ class FplDailyUsageKWHSensor(FplEnergyEntity):
     def state(self):
         data = self.getData("daily_usage")
 
-        if len(data) > 0:
+        if data is not None and len(data) > 0 and "usage" in data[-1].keys():
             return data[-1]["usage"]
 
         return None
@@ -41,7 +41,7 @@ class FplDailyUsageKWHSensor(FplEnergyEntity):
         """Return the state attributes."""
         data = self.getData("daily_usage")
 
-        if len(data) > 0:
+        if data is not None and len(data) > 0 and "date" in data[-1].keys():
             return {"date": data[-1]["date"]}
 
         return {}
