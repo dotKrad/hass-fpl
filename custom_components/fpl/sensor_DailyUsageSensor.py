@@ -1,7 +1,10 @@
+"""Daily Usage Sensors"""
 from .fplEntity import FplEnergyEntity, FplMoneyEntity
 
 
 class FplDailyUsageSensor(FplMoneyEntity):
+    """Daily Usage Cost Sensor"""
+
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Usage")
 
@@ -25,6 +28,8 @@ class FplDailyUsageSensor(FplMoneyEntity):
 
 
 class FplDailyUsageKWHSensor(FplEnergyEntity):
+    """Daily Usage Kwh Sensor"""
+
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Usage KWH")
 
