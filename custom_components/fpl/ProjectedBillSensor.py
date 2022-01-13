@@ -24,13 +24,12 @@ class FplProjectedBillSensor(FplSensor):
     @property
     def device_state_attributes(self):
         """Return the state attributes."""
-        try:
-            if "budget_bill" in self.data.keys():
-                self.attr["budget_bill"] = self.data["budget_bill"]
-        except:
-            pass
 
-        return self.attr
+        if "budget_bill" in self.data.keys():
+            self.attr["budget_bill"] = self.data["budget_bill"]
+
+
+        return self._state
 
     @property
     def icon(self):

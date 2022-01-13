@@ -7,7 +7,7 @@ from datetime import timedelta
 from .fplapi import FplApi
 from .const import DOMAIN
 
-SCAN_INTERVAL = timedelta(seconds=7200)
+SCAN_INTERVAL = timedelta(seconds=1200)
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 

@@ -300,6 +300,9 @@ class FplApi(object):
                                     "cost": daily["billingCharge"],
                                     "date": daily["date"],
                                     "max_temperature": daily["averageHighTemperature"],
+                                    "netDeliveredKwh": daily["netDeliveredKwh"],
+                                    "netReceivedKwh": daily["netReceivedKwh"],
+                                    "readTime": daily["readTime"],
                                 }
                             )
                             # totalPowerUsage += int(daily["kwhUsed"])
@@ -312,6 +315,7 @@ class FplApi(object):
                 data["billToDateKWH"] = r["CurrentUsage"]["billToDateKWH"]
                 data["recMtrReading"] = r["CurrentUsage"]["recMtrReading"]
                 data["delMtrReading"] = r["CurrentUsage"]["delMtrReading"]
+                data["billStartDate"] = r["CurrentUsage"]["billStartDate"]
         return data
 
     async def __getDataFromApplianceUsage(self, account, lastBilledDate) -> dict:
