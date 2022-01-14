@@ -24,10 +24,9 @@ class FplEntity(CoordinatorEntity, SensorEntity):
     @property
     def unique_id(self):
         """Return the ID of this device."""
-        id = "{}{}{}".format(
+        return "{}{}{}".format(
             DOMAIN, self.account, self.sensorName.lower().replace(" ", "")
         )
-        return id
 
     @property
     def name(self):
@@ -37,7 +36,7 @@ class FplEntity(CoordinatorEntity, SensorEntity):
     def device_info(self):
         return {
             "identifiers": {(DOMAIN, self.account)},
-            "name": f"Account {self.account}",
+            "name": f"FPL Account {self.account}",
             "model": VERSION,
             "manufacturer": "Florida Power & Light",
         }
