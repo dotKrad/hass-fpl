@@ -1,4 +1,7 @@
-"""BlueprintEntity class"""
+"""Fpl Entity class"""
+
+from datetime import datetime, timedelta
+
 from homeassistant.components.sensor import SensorEntity, STATE_CLASS_MEASUREMENT
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -7,14 +10,13 @@ from homeassistant.const import (
     DEVICE_CLASS_ENERGY,
     ENERGY_KILO_WATT_HOUR,
     DEVICE_CLASS_MONETARY,
-    DEVICE_CLASS_TIMESTAMP,
 )
-
-from datetime import datetime, timedelta
 from .const import DOMAIN, VERSION, ATTRIBUTION
 
 
 class FplEntity(CoordinatorEntity, SensorEntity):
+    """FPL base entity"""
+
     def __init__(self, coordinator, config_entry, account, sensorName):
         super().__init__(coordinator)
         self.config_entry = config_entry
@@ -41,7 +43,8 @@ class FplEntity(CoordinatorEntity, SensorEntity):
             "manufacturer": "Florida Power & Light",
         }
 
-    def defineAttributes(self):
+    def defineAttributes(self) -> dict:
+        """override this method to set custom attributes"""
         return {}
 
     @property
@@ -55,12 +58,12 @@ class FplEntity(CoordinatorEntity, SensorEntity):
         return attributes
 
     def getData(self, field):
+        """method is called to update sensor data"""
         return self.coordinator.data.get(self.account).get(field)
 
 
 class FplEnergyEntity(FplEntity):
-    def __init__(self, coordinator, config_entry, account, sensorName):
-        super().__init__(coordinator, config_entry, account, sensorName)
+    """Represents a energy sensor"""
 
     @property
     def state_class(self) -> str:
@@ -92,8 +95,7 @@ class FplEnergyEntity(FplEntity):
 
 
 class FplMoneyEntity(FplEntity):
-    def __init__(self, coordinator, config_entry, account, sensorName):
-        super().__init__(coordinator, config_entry, account, sensorName)
+    """Represents a money sensor"""
 
     @property
     def icon(self):
@@ -111,13 +113,12 @@ class FplMoneyEntity(FplEntity):
 
 
 class FplDateEntity(FplEntity):
-    def __init__(self, coordinator, config_entry, account, sensorName):
-        super().__init__(coordinator, config_entry, account, sensorName)
+    """Represents a date or days"""
 
     # @property
     # def device_class(self) -> str:
     #    """Return the class of this device, from component DEVICE_CLASSES."""
-    #    return DEVICE_CLASS_TIMESTAMP
+    #    return DEVICE_CLASS_DATE
 
     @property
     def icon(self):
