@@ -1,4 +1,8 @@
-from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING
+"""energy sensors"""
+from homeassistant.components.sensor import (
+    STATE_CLASS_TOTAL_INCREASING,
+    STATE_CLASS_TOTAL,
+)
 from .fplEntity import FplEnergyEntity
 
 
@@ -10,6 +14,12 @@ class ProjectedKWHSensor(FplEnergyEntity):
     def state(self):
         return self.getData("projectedKWH")
 
+    def defineAttributes(self):
+        """Return the state attributes."""
+        attributes = {}
+        attributes["state_class"] = STATE_CLASS_TOTAL
+        return attributes
+
 
 class DailyAverageKWHSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
@@ -18,6 +28,12 @@ class DailyAverageKWHSensor(FplEnergyEntity):
     @property
     def state(self):
         return self.getData("dailyAverageKWH")
+
+    def defineAttributes(self):
+        """Return the state attributes."""
+        attributes = {}
+        attributes["state_class"] = STATE_CLASS_TOTAL
+        return attributes
 
 
 class BillToDateKWHSensor(FplEnergyEntity):
@@ -28,9 +44,11 @@ class BillToDateKWHSensor(FplEnergyEntity):
     def state(self):
         return self.getData("billToDateKWH")
 
-    @property
-    def state_class(self) -> str:
-        """Return the state class of this entity, from STATE_CLASSES, if any."""
+    def defineAttributes(self):
+        """Return the state attributes."""
+        attributes = {}
+        attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        return attributes
 
 
 class NetReceivedKWHSensor(FplEnergyEntity):
@@ -41,9 +59,11 @@ class NetReceivedKWHSensor(FplEnergyEntity):
     def state(self):
         return self.getData("recMtrReading")
 
-    @property
-    def icon(self):
-        return "mdi:flash"
+    def defineAttributes(self):
+        """Return the state attributes."""
+        attributes = {}
+        attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        return attributes
 
 
 class NetDeliveredKWHSensor(FplEnergyEntity):
@@ -54,6 +74,8 @@ class NetDeliveredKWHSensor(FplEnergyEntity):
     def state(self):
         return self.getData("delMtrReading")
 
-    @property
-    def icon(self):
-        return "mdi:flash"
+    def defineAttributes(self):
+        """Return the state attributes."""
+        attributes = {}
+        attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        return attributes

@@ -1,5 +1,4 @@
 """Custom FPl api client"""
-from asyncio import exceptions as asyncio_exceptions
 import logging
 from datetime import datetime
 
@@ -17,7 +16,7 @@ LOGIN_RESULT_UNAUTHORIZED = "UNAUTHORIZED"
 LOGIN_RESULT_FAILURE = "FAILURE"
 
 _LOGGER = logging.getLogger(__package__)
-TIMEOUT = 30
+TIMEOUT = 5
 
 API_HOST = "https://www.fpl.com"
 
@@ -98,7 +97,7 @@ class FplApi:
                 if json_data["messageCode"] == LOGIN_RESULT_INVALIDPASSWORD:
                     return LOGIN_RESULT_INVALIDPASSWORD
 
-        except asyncio_exceptions as exception:
+        except Exception as exception:
             _LOGGER.error("Error %s : %s", exception, sys.exc_info()[0])
             return LOGIN_RESULT_FAILURE
 
@@ -110,7 +109,7 @@ class FplApi:
         try:
             async with async_timeout.timeout(TIMEOUT):
                 await self._session.get(URL_LOGOUT)
-        except asyncio_exceptions:
+        except Exception:
             pass
 
     async def async_get_open_accounts(self):
@@ -129,8 +128,8 @@ class FplApi:
                 if account["statusCategory"] == STATUS_CATEGORY_OPEN:
                     result.append(account["accountNumber"])
 
-        except asyncio_exceptions as exception:
-            _LOGGER.error("Getting accounts %s", exception)
+        except Exception:
+            _LOGGER.error("Getting accounts %s", sys.exc_info())
 
         return result
 
@@ -186,11 +185,13 @@ class FplApi:
         def hasProgram(programName) -> bool:
             return programName in programs.keys() and programs[programName]
 
+        # Budget Billing program
         if hasProgram("BBL"):
-            # budget billing
             data["budget_bill"] = True
             bbl_data = await self.__getBBL_async(account, data)
             data.update(bbl_data)
+        else:
+            data["budget_bill"] = False
 
         data.update(
             await self.__getDataFromEnergyService(account, premise, currentBillDate)
@@ -227,7 +228,7 @@ class FplApi:
                 data["daily_avg"] = dailyAvg
                 data["avg_high_temp"] = avgHighTemp
 
-        except asyncio_exceptions:
+        except Exception:
             pass
 
         return data
@@ -267,7 +268,7 @@ class FplApi:
                     data["budget_billing_bill_to_date"] = bbAsOfDateAmt
 
                     data["budget_billing_projected_bill"] = float(projectedBudgetBill)
-        except asyncio_exceptions:
+        except Exception:
             pass
 
         try:
@@ -279,7 +280,7 @@ class FplApi:
                     r = (await response.json())["data"]
                     data["bill_to_date"] = float(r["eleAmt"])
                     data["defered_amount"] = float(r["defAmt"])
-        except asyncio_exceptions:
+        except Exception:
             pass
 
         return data
@@ -329,8 +330,15 @@ class FplApi:
                                 {
                                     "usage": daily["kwhUsed"],
                                     "cost": daily["billingCharge"],
-                                    "date": daily["date"],
+                                    # "date": daily["date"],
                                     "max_temperature": daily["averageHighTemperature"],
+                                    "netDeliveredKwh": daily["netDeliveredKwh"]
+                                    if "netDeliveredKwh" in daily.keys()
+                                    else 0,
+                                    "netReceivedKwh": daily["netReceivedKwh"]
+                                    if "netReceivedKwh" in daily.keys()
+                                    else 0,
+                                    "readTime": daily["readTime"],
                                 }
                             )
                             # totalPowerUsage += int(daily["kwhUsed"])
@@ -343,6 +351,7 @@ class FplApi:
                 data["billToDateKWH"] = r["CurrentUsage"]["billToDateKWH"]
                 data["recMtrReading"] = r["CurrentUsage"]["recMtrReading"]
                 data["delMtrReading"] = r["CurrentUsage"]["delMtrReading"]
+                data["billStartDate"] = r["CurrentUsage"]["billStartDate"]
         return data
 
     async def __getDataFromApplianceUsage(self, account, lastBilledDate) -> dict:
@@ -368,7 +377,7 @@ class FplApi:
                             rr = full
                         data[e["category"].replace(" ", "_")] = rr
 
-        except asyncio_exceptions:
+        except Exception:
             pass
 
         return {"energy_percent_by_applicance": data}

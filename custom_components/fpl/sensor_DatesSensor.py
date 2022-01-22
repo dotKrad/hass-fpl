@@ -1,4 +1,6 @@
-from .fplEntity import FplDateEntity
+"""dates sensors"""
+import datetime
+from .fplEntity import FplDateEntity, FplDayEntity
 
 
 class CurrentBillDateSensor(FplDateEntity):
@@ -7,7 +9,7 @@ class CurrentBillDateSensor(FplDateEntity):
 
     @property
     def state(self):
-        return self.getData("current_bill_date")
+        return datetime.date.fromisoformat(self.getData("current_bill_date"))
 
 
 class NextBillDateSensor(FplDateEntity):
@@ -16,10 +18,10 @@ class NextBillDateSensor(FplDateEntity):
 
     @property
     def state(self):
-        return self.getData("next_bill_date")
+        return datetime.date.fromisoformat(self.getData("next_bill_date"))
 
 
-class ServiceDaysSensor(FplDateEntity):
+class ServiceDaysSensor(FplDayEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Service Days")
 
@@ -28,7 +30,7 @@ class ServiceDaysSensor(FplDateEntity):
         return self.getData("service_days")
 
 
-class AsOfDaysSensor(FplDateEntity):
+class AsOfDaysSensor(FplDayEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "As Of Days")
 
@@ -37,7 +39,7 @@ class AsOfDaysSensor(FplDateEntity):
         return self.getData("as_of_days")
 
 
-class RemainingDaysSensor(FplDateEntity):
+class RemainingDaysSensor(FplDayEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Remaining Days")
 

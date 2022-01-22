@@ -58,8 +58,8 @@ class FplEntity(CoordinatorEntity, SensorEntity):
         return attributes
 
     def getData(self, field):
-        """method is called to update sensor data"""
-        return self.coordinator.data.get(self.account).get(field)
+        """call this method to retrieve sensor data"""
+        return self.coordinator.data.get(self.account).get(field, None)
 
 
 class FplEnergyEntity(FplEntity):
@@ -123,3 +123,21 @@ class FplDateEntity(FplEntity):
     @property
     def icon(self):
         return "mdi:calendar"
+
+
+class FplDayEntity(FplEntity):
+    """Represents a date or days"""
+
+    # @property
+    # def device_class(self) -> str:
+    #    """Return the class of this device, from component DEVICE_CLASSES."""
+    #    return DEVICE_CLASS_DATE
+
+    @property
+    def icon(self):
+        return "mdi:calendar"
+
+    @property
+    def unit_of_measurement(self) -> str:
+        """Return the unit of measurement of this entity, if any."""
+        return "days"
