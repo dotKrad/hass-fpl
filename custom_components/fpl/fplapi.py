@@ -294,6 +294,10 @@ class FplApi(object):
                             and "date" in daily.keys()
                             and "averageHighTemperature" in daily.keys()
                         ):
+                            if ( "netDeliveredKwh" not in daily.keys()):
+                                daily["netDeliveredKwh"] = 0
+                            if ( "netReceivedKwh" not in daily.keys()):
+                                daily["netReceivedKwh"] = 0
                             dailyUsage.append(
                                 {
                                     "usage": daily["kwhUsed"],
