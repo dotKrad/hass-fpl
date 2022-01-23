@@ -1,8 +1,13 @@
 {
+<<<<<<< HEAD
     "name": "FPL",
     "country": "US",
     "domains": [
         "sensor"
     ],
     "homeassistant": "2021.12.0"
+=======
+  "name": "Hass Fpl",
+  "country": ["US"]
+>>>>>>> master
 }

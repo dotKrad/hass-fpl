@@ -30,15 +30,12 @@ class FplEntity(CoordinatorEntity, SensorEntity):
         return id
 
     @property
-    def name(self):
-        return f"{DOMAIN.upper()} {self.account} {self.sensorName}"
-
-    @property
     def device_info(self):
         return {
             "identifiers": {(DOMAIN, self.account)},
-            "name": f"Account {self.account}",
-            "model": VERSION,
+            "name": f"FPL Account {self.account}",
+            "model": "FPL Monitoring API",
+            "sw_version": VERSION,
             "manufacturer": "Florida Power & Light",
         }
 
