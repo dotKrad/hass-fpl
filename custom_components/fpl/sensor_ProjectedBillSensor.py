@@ -1,4 +1,8 @@
 """Projected bill sensors"""
+from homeassistant.components.sensor import (
+    STATE_CLASS_TOTAL_INCREASING,
+    STATE_CLASS_TOTAL,
+)
 from .fplEntity import FplMoneyEntity
 
 
@@ -18,10 +22,10 @@ class FplProjectedBillSensor(FplMoneyEntity):
 
         return self.getData("projected_bill")
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["state_class"] = "total"
+        attributes["state_class"] = STATE_CLASS_TOTAL
         attributes["budget_bill"] = self.getData("budget_bill")
         return attributes
 
@@ -39,10 +43,10 @@ class DeferedAmountSensor(FplMoneyEntity):
             return self.getData("defered_amount")
         return 0
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["state_class"] = "total"
+        attributes["state_class"] = STATE_CLASS_TOTAL
         return attributes
 
 
@@ -56,10 +60,10 @@ class ProjectedBudgetBillSensor(FplMoneyEntity):
     def state(self):
         return self.getData("budget_billing_projected_bill")
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["state_class"] = "total"
+        attributes["state_class"] = STATE_CLASS_TOTAL
         return attributes
 
 
@@ -73,8 +77,8 @@ class ProjectedActualBillSensor(FplMoneyEntity):
     def state(self):
         return self.getData("projected_bill")
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["state_class"] = "total"
+        attributes["state_class"] = STATE_CLASS_TOTAL
         return attributes

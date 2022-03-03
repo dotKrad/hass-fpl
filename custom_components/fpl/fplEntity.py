@@ -43,7 +43,7 @@ class FplEntity(CoordinatorEntity, SensorEntity):
             "manufacturer": "Florida Power & Light",
         }
 
-    def defineAttributes(self) -> dict:
+    def customAttributes(self) -> dict:
         """override this method to set custom attributes"""
         return {}
 
@@ -54,7 +54,7 @@ class FplEntity(CoordinatorEntity, SensorEntity):
             "attribution": ATTRIBUTION,
             "integration": "FPL",
         }
-        attributes.update(self.defineAttributes())
+        attributes.update(self.customAttributes())
         return attributes
 
     def getData(self, field):

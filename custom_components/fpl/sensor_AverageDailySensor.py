@@ -1,4 +1,5 @@
 """Average daily sensors"""
+from homeassistant.components.sensor import STATE_CLASS_TOTAL
 from .fplEntity import FplMoneyEntity
 
 
@@ -18,10 +19,10 @@ class DailyAverageSensor(FplMoneyEntity):
 
         return self.getData("daily_avg")
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["state_class"] = "total"
+        attributes["state_class"] = STATE_CLASS_TOTAL
         return attributes
 
 
@@ -35,10 +36,10 @@ class BudgetDailyAverageSensor(FplMoneyEntity):
     def state(self):
         return self.getData("budget_billing_daily_avg")
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["state_class"] = "total"
+        attributes["state_class"] = STATE_CLASS_TOTAL
         return attributes
 
 
@@ -52,8 +53,8 @@ class ActualDailyAverageSensor(FplMoneyEntity):
     def state(self):
         return self.getData("daily_avg")
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["state_class"] = "total"
+        attributes["state_class"] = STATE_CLASS_TOTAL
         return attributes

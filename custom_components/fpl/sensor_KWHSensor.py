@@ -1,4 +1,6 @@
 """energy sensors"""
+from datetime import date, timedelta
+import datetime
 from homeassistant.components.sensor import (
     STATE_CLASS_TOTAL_INCREASING,
     STATE_CLASS_TOTAL,
@@ -14,7 +16,7 @@ class ProjectedKWHSensor(FplEnergyEntity):
     def state(self):
         return self.getData("projectedKWH")
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
         attributes["state_class"] = STATE_CLASS_TOTAL
@@ -29,7 +31,7 @@ class DailyAverageKWHSensor(FplEnergyEntity):
     def state(self):
         return self.getData("dailyAverageKWH")
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
         attributes["state_class"] = STATE_CLASS_TOTAL
@@ -44,10 +46,17 @@ class BillToDateKWHSensor(FplEnergyEntity):
     def state(self):
         return self.getData("billToDateKWH")
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
+
+        # data = self.getData("daily_usage")
+        # date = data[-1]["readTime"]
+        asOfDays = self.getData("as_of_days")
+        last_reset = date.today() - timedelta(days=asOfDays)
+
         attributes = {}
         attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        attributes["last_reset"] = last_reset
         return attributes
 
 
@@ -59,7 +68,7 @@ class NetReceivedKWHSensor(FplEnergyEntity):
     def state(self):
         return self.getData("recMtrReading")
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
         attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
@@ -74,7 +83,7 @@ class NetDeliveredKWHSensor(FplEnergyEntity):
     def state(self):
         return self.getData("delMtrReading")
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
         attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
