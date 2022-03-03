@@ -146,6 +146,8 @@ class FplApi:
 
         premise = account_data["premiseNumber"].zfill(9)
 
+        data["meterSerialNo"] = account_data["meterSerialNo"]
+
         # currentBillDate
         currentBillDate = datetime.strptime(
             account_data["currentBillDate"].replace("-", "").split("T")[0], "%Y%m%d"
@@ -268,8 +270,9 @@ class FplApi:
                     data["budget_billing_bill_to_date"] = bbAsOfDateAmt
 
                     data["budget_billing_projected_bill"] = float(projectedBudgetBill)
-        except Exception:
-            pass
+
+        except Exception as e:
+            _LOGGER.error("Error getting BBL: %s", e)
 
         try:
             async with async_timeout.timeout(TIMEOUT):
@@ -280,8 +283,9 @@ class FplApi:
                     r = (await response.json())["data"]
                     data["bill_to_date"] = float(r["eleAmt"])
                     data["defered_amount"] = float(r["defAmt"])
-        except Exception:
-            pass
+
+        except Exception as e:
+            _LOGGER.error("Error getting BBL: %s", e)
 
         return data
 
@@ -338,7 +342,11 @@ class FplApi:
                                     "netReceivedKwh": daily["netReceivedKwh"]
                                     if "netReceivedKwh" in daily.keys()
                                     else 0,
-                                    "readTime": daily["readTime"],
+                                    "readTime": datetime.fromisoformat(
+                                        daily[
+                                            "readTime"
+                                        ]  # 2022-02-25T00:00:00.000-05:00
+                                    ),
                                 }
                             )
                             # totalPowerUsage += int(daily["kwhUsed"])
