@@ -29,7 +29,7 @@ class ProjectedKWHSensor(FplEntity):
 
 class DailyAverageKWHSensor(FplEntity):
     def __init__(self, coordinator, config, account):
-        super().__init__(coordinator, config, account, "Daily Average")
+        super().__init__(coordinator, config, account, "Daily Average KWH")
 
     @property
     def state(self):
