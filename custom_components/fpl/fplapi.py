@@ -294,13 +294,15 @@ class FplApi(object):
                         ):
                             dailyUsage.append(
                                 {
-                                    "usage": daily["kwhUsed"],
-                                    "cost": daily["billingCharge"],
-                                    "date": daily["date"],
-                                    "max_temperature": daily["averageHighTemperature"],
-                                    "netDeliveredKwh": daily["netDeliveredKwh"],
-                                    "netReceivedKwh": daily["netReceivedKwh"],
-                                    "readTime": daily["readTime"],
+                                    "usage": daily.get("kwhUsed"),
+                                    "cost": daily.get("billingCharge"),
+                                    "date": daily.get("date"),
+                                    "max_temperature": daily.get(
+                                        "averageHighTemperature"
+                                    ),
+                                    "netDeliveredKwh": daily.get("netDeliveredKwh"),
+                                    "netReceivedKwh": daily.get("netReceivedKwh"),
+                                    "readTime": daily.get("readTime"),
                                 }
                             )
                             # totalPowerUsage += int(daily["kwhUsed"])
@@ -308,12 +310,12 @@ class FplApi(object):
                     # data["total_power_usage"] = totalPowerUsage
                     data["daily_usage"] = dailyUsage
 
-                data["projectedKWH"] = r["CurrentUsage"]["projectedKWH"]
-                data["dailyAverageKWH"] = r["CurrentUsage"]["dailyAverageKWH"]
-                data["billToDateKWH"] = r["CurrentUsage"]["billToDateKWH"]
-                data["recMtrReading"] = r["CurrentUsage"]["recMtrReading"]
-                data["delMtrReading"] = r["CurrentUsage"]["delMtrReading"]
-                data["billStartDate"] = r["CurrentUsage"]["billStartDate"]
+                data["projectedKWH"] = r["CurrentUsage"].get("projectedKWH")
+                data["dailyAverageKWH"] = r["CurrentUsage"].get("dailyAverageKWH")
+                data["billToDateKWH"] = r["CurrentUsage"].get("billToDateKWH")
+                data["recMtrReading"] = r["CurrentUsage"].get("recMtrReading")
+                data["delMtrReading"] = r["CurrentUsage"].get("delMtrReading")
+                data["billStartDate"] = r["CurrentUsage"].get("billStartDate")
         return data
 
     async def __getDataFromApplianceUsage(self, account, lastBilledDate) -> dict:

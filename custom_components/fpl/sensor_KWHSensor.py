@@ -31,7 +31,7 @@ class DailyAverageKWHSensor(FplEnergyEntity):
 class DailyAverageKWHSensor(FplEntity):
 >>>>>>> master
     def __init__(self, coordinator, config, account):
-        super().__init__(coordinator, config, account, "Daily Average")
+        super().__init__(coordinator, config, account, "Daily Average KWH")
 
     @property
     def state(self):
