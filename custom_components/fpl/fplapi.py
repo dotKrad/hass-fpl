@@ -1,6 +1,6 @@
 """Custom FPl api client"""
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import sys
 import json
@@ -144,7 +144,7 @@ class FplApi:
             )
         account_data = (await response.json())["data"]
 
-        premise = account_data["premiseNumber"].zfill(9)
+        premise = account_data.get("premiseNumber").zfill(9)
 
         data["meterSerialNo"] = account_data["meterSerialNo"]
 
@@ -185,7 +185,7 @@ class FplApi:
                 programs[key] = program["enrollmentStatus"] == ENROLLED
 
         def hasProgram(programName) -> bool:
-            return programName in programs.keys() and programs[programName]
+            return programName in programs and programs[programName]
 
         # Budget Billing program
         if hasProgram("BBL"):
@@ -195,9 +195,17 @@ class FplApi:
         else:
             data["budget_bill"] = False
 
+        # Get data from energy service
         data.update(
             await self.__getDataFromEnergyService(account, premise, currentBillDate)
         )
+
+        # Get data from energy service ( hourly )
+        # data.update(
+        #    await self.__getDataFromEnergyServiceHourly(
+        #        account, premise, currentBillDate
+        #    )
+        # )
 
         data.update(await self.__getDataFromApplianceUsage(account, currentBillDate))
         return data
@@ -360,6 +368,85 @@ class FplApi:
                 data["recMtrReading"] = r["CurrentUsage"]["recMtrReading"]
                 data["delMtrReading"] = r["CurrentUsage"]["delMtrReading"]
                 data["billStartDate"] = r["CurrentUsage"]["billStartDate"]
+        return data
+
+    async def __getDataFromEnergyServiceHourly(
+        self, account, premise, lastBilledDate
+    ) -> dict:
+        _LOGGER.info("Getting data from energy service Hourly")
+
+        # date = str(lastBilledDate.strftime("%m%d%Y"))
+        date = str((datetime.now() - timedelta(days=1)).strftime("%m%d%Y"))
+
+        JSON = {
+            "status": 2,
+            "channel": "WEB",
+            "amrFlag": "Y",
+            "accountType": "RESIDENTIAL",
+            "revCode": "1",
+            "premiseNumber": premise,
+            "projectedBillFlag": False,
+            "billComparisionFlag": False,
+            "monthlyFlag": False,
+            "frequencyType": "Hourly",
+            "applicationPage": "resDashBoard",
+            "startDate": date,
+        }
+
+        data = {}
+
+        # now = homeassistant.util.dt.utcnow()
+
+        # now = datetime.now().astimezone()
+        # hour = now.hour
+
+        async with async_timeout.timeout(TIMEOUT):
+            response = await self._session.post(
+                URL_ENERGY_SERVICE.format(account=account), json=JSON
+            )
+            if response.status == 200:
+                r = (await response.json())["data"]
+                dailyUsage = []
+
+                # totalPowerUsage = 0
+                if "data" in r["HourlyUsage"]:
+                    for daily in r["HourlyUsage"]["data"]:
+                        if (
+                            "kwhUsed" in daily.keys()
+                            and "billingCharge" in daily.keys()
+                            and "date" in daily.keys()
+                            and "averageHighTemperature" in daily.keys()
+                        ):
+                            dailyUsage.append(
+                                {
+                                    "usage": daily["kwhUsed"],
+                                    "cost": daily["billingCharge"],
+                                    # "date": daily["date"],
+                                    "max_temperature": daily["averageHighTemperature"],
+                                    "netDeliveredKwh": daily["netDeliveredKwh"]
+                                    if "netDeliveredKwh" in daily.keys()
+                                    else 0,
+                                    "netReceivedKwh": daily["netReceivedKwh"]
+                                    if "netReceivedKwh" in daily.keys()
+                                    else 0,
+                                    "readTime": datetime.fromisoformat(
+                                        daily[
+                                            "readTime"
+                                        ]  # 2022-02-25T00:00:00.000-05:00
+                                    ),
+                                }
+                            )
+                            # totalPowerUsage += int(daily["kwhUsed"])
+
+                    # data["total_power_usage"] = totalPowerUsage
+                    data["daily_usage"] = dailyUsage
+
+                data["projectedKWH"] = r["HourlyUsage"]["projectedKWH"]
+                data["dailyAverageKWH"] = r["HourlyUsage"]["dailyAverageKWH"]
+                data["billToDateKWH"] = r["HourlyUsage"]["billToDateKWH"]
+                data["recMtrReading"] = r["HourlyUsage"]["recMtrReading"]
+                data["delMtrReading"] = r["HourlyUsage"]["delMtrReading"]
+                data["billStartDate"] = r["HourlyUsage"]["billStartDate"]
         return data
 
     async def __getDataFromApplianceUsage(self, account, lastBilledDate) -> dict:

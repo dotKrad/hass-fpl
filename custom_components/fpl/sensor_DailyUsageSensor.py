@@ -23,7 +23,7 @@ class FplDailyUsageSensor(FplMoneyEntity):
         """Return the state attributes."""
         data = self.getData("daily_usage")
         attributes = {}
-        attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        # attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
         if data is not None and len(data) > 0 and "readTime" in data[-1].keys():
             attributes["date"] = data[-1]["readTime"]
 
@@ -52,9 +52,9 @@ class FplDailyUsageKWHSensor(FplEnergyEntity):
         last_reset = date - timedelta(days=1)
 
         attributes = {}
-        attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        # attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
         attributes["date"] = date
-        attributes["last_reset"] = last_reset
+        # attributes["last_reset"] = last_reset
         return attributes
 
 

@@ -12,10 +12,9 @@ REQUIRED_FILES = [
     "config_flow.py",
     "manifest.json",
     "sensor.py",
-    "switch.py",
 ]
 ISSUE_URL = "https://github.com/dotKrad/hass-fpl/issues"
-ATTRIBUTION = "This data is provided by FPL."
+ATTRIBUTION = "Data provided by FPL."
 
 # Platforms
 BINARY_SENSOR = "binary_sensor"

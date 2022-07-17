@@ -61,7 +61,7 @@ async def async_setup_entry(hass, entry):
     password = entry.data.get(CONF_PASSWORD)
 
     # Configure the client.
-    _LOGGER.info(f"Configuring the client")
+    _LOGGER.info("Configuring the client")
     session = async_get_clientsession(hass)
     client = FplApi(username, password, session)
 
@@ -77,7 +77,7 @@ async def async_setup_entry(hass, entry):
                 hass.config_entries.async_forward_entry_setup(entry, platform)
             )
 
-    """Set up Fpl as config entry."""
+    # Set up Fpl as config entry.
 
     entry.add_update_listener(async_reload_entry)
     return True
