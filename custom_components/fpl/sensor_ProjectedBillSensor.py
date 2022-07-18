@@ -1,6 +1,6 @@
 """Projected bill sensors"""
 from homeassistant.components.sensor import (
-    STATE_CLASS_TOTAL_INCREASING,
+    # STATE_CLASS_TOTAL_INCREASING,
     STATE_CLASS_TOTAL,
 )
 from .fplEntity import FplMoneyEntity
@@ -13,6 +13,17 @@ class FplProjectedBillSensor(FplMoneyEntity):
         super().__init__(coordinator, config, account, "Projected Bill")
 
     @property
+    def native_value(self):
+        budget = self.getData("budget_bill")
+        budget_billing_projected_bill = self.getData("budget_billing_projected_bill")
+
+        if budget and budget_billing_projected_bill is not None:
+            return self.getData("budget_billing_projected_bill")
+
+        return self.getData("projected_bill")
+
+    """
+    @property
     def state(self):
         budget = self.getData("budget_bill")
         budget_billing_projected_bill = self.getData("budget_billing_projected_bill")
@@ -21,6 +32,7 @@ class FplProjectedBillSensor(FplMoneyEntity):
             return self.getData("budget_billing_projected_bill")
 
         return self.getData("projected_bill")
+    """
 
     def customAttributes(self):
         """Return the state attributes."""
