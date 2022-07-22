@@ -3,7 +3,7 @@
 NAME = "FPL Integration"
 DOMAIN = "fpl"
 DOMAIN_DATA = f"{DOMAIN}_data"
-VERSION = "0.1.0"
+VERSION = "0.0.1"
 PLATFORMS = ["sensor"]
 REQUIRED_FILES = [
     ".translations/en.json",
