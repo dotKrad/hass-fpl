@@ -1,8 +1,10 @@
+"""Data Update Coordinator"""
 import logging
+from datetime import timedelta
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.core import HomeAssistant
-from datetime import timedelta
+
 
 from .fplapi import FplApi
 from .const import DOMAIN

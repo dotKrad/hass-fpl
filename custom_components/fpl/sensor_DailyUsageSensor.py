@@ -1,7 +1,12 @@
+"""Daily Usage Sensors"""
+from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING
+from datetime import timedelta
 from .fplEntity import FplEnergyEntity, FplMoneyEntity
 
 
 class FplDailyUsageSensor(FplMoneyEntity):
+    """Daily Usage Cost Sensor"""
+
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Usage")
 
@@ -9,37 +14,25 @@ class FplDailyUsageSensor(FplMoneyEntity):
     def state(self):
         data = self.getData("daily_usage")
 
-        try:
-            self._state = data[-1]["cost"]
-        except:
-            pass
-        return self._state
+        if data is not None and len(data) > 0 and "cost" in data[-1].keys():
+            return data[-1]["cost"]
 
-    def defineAttributes(self):
+        return None
+
+    def customAttributes(self):
         """Return the state attributes."""
         data = self.getData("daily_usage")
         attributes = {}
-        attributes["friendly_name"] = "Daily Usage"
-        attributes["device_class"] = "monetary"
-        attributes["state_class"] = "total_increasing"
-        attributes["unit_of_measurement"] = "$"
-        if data is not None:
-            if (
-                (len(data) > 0)
-                and (data[-1] is not None)
-                and (data[-1]["readTime"] is not None)
-            ):
-                attributes["date"] = data[-1]["readTime"]
-            if (
-                (len(data) > 1)
-                and (data[-2] is not None)
-                and (data[-2]["readTime"] is not None)
-            ):
-                attributes["last_reset"] = data[-2]["readTime"]
+        # attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        if data is not None and len(data) > 0 and "readTime" in data[-1].keys():
+            attributes["date"] = data[-1]["readTime"]
+
         return attributes
 
 
 class FplDailyUsageKWHSensor(FplEnergyEntity):
+    """Daily Usage Kwh Sensor"""
+
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Usage KWH")
 
@@ -47,126 +40,71 @@ class FplDailyUsageKWHSensor(FplEnergyEntity):
     def state(self):
         data = self.getData("daily_usage")
 
-        try:
-            self._state = data[-1]["usage"]
-        except:
-            pass
-        return self._state
+        if data is not None and len(data) > 0 and "usage" in data[-1].keys():
+            return data[-1]["usage"]
 
-    def defineAttributes(self):
+        return None
+
+    def customAttributes(self):
         """Return the state attributes."""
         data = self.getData("daily_usage")
+        date = data[-1]["readTime"]
+        last_reset = date - timedelta(days=1)
 
         attributes = {}
-        attributes["friendly_name"] = "Daily Usage"
-        attributes["device_class"] = "energy"
-        attributes["state_class"] = "total_increasing"
-        attributes["unit_of_measurement"] = "kWh"
-
-        if data is not None:
-            if (
-                (len(data) > 0)
-                and (data[-1] is not None)
-                and (data[-1]["readTime"] is not None)
-            ):
-                attributes["date"] = data[-1]["readTime"]
-            if (
-                (len(data) > 1)
-                and (data[-2] is not None)
-                and (data[-2]["readTime"] is not None)
-            ):
-                attributes["last_reset"] = data[-2]["readTime"]
-
+        # attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        attributes["date"] = date
+        # attributes["last_reset"] = last_reset
         return attributes
 
-    @property
-    def icon(self):
-        return "mdi:flash"
 
+class FplDailyReceivedKWHSensor(FplEnergyEntity):
+    """daily received Kwh sensor"""
 
-class FplDailyReceivedKWHSensor(FplEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Received KWH")
 
     @property
     def state(self):
         data = self.getData("daily_usage")
-        try:
-            self._state = data[-1]["netReceivedKwh"]
-        except:
-            pass
-        return self._state
+        if data is not None and len(data) > 0 and "netReceivedKwh" in data[-1].keys():
+            return data[-1]["netReceivedKwh"]
+        return 0
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         data = self.getData("daily_usage")
+        date = data[-1]["readTime"]
+        last_reset = date - timedelta(days=1)
 
         attributes = {}
-        attributes["friendly_name"] = "Daily Return to Grid"
-        attributes["device_class"] = "energy"
-        attributes["state_class"] = "total_increasing"
-        attributes["unit_of_measurement"] = "kWh"
-        if data is not None:
-            if (
-                (len(data) > 0)
-                and (data[-1] is not None)
-                and (data[-1]["readTime"] is not None)
-            ):
-                attributes["date"] = data[-1]["readTime"]
-            if (
-                (len(data) > 1)
-                and (data[-2] is not None)
-                and (data[-2]["readTime"] is not None)
-            ):
-                attributes["last_reset"] = data[-2]["readTime"]
+        attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        attributes["date"] = date
+        attributes["last_reset"] = last_reset
         return attributes
 
-    @property
-    def icon(self):
-        return "mdi:flash"
 
+class FplDailyDeliveredKWHSensor(FplEnergyEntity):
+    """daily delivered Kwh sensor"""
 
-class FplDailyDeliveredKWHSensor(FplEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Delivered KWH")
 
     @property
     def state(self):
         data = self.getData("daily_usage")
-        try:
-            self._state = data[-1]["netDeliveredKwh"]
-        except:
-            pass
-        return self._state
+        if data is not None and len(data) > 0 and "netDeliveredKwh" in data[-1].keys():
+            return data[-1]["netDeliveredKwh"]
+        return 0
 
-    def defineAttributes(self):
+    def customAttributes(self):
         """Return the state attributes."""
         data = self.getData("daily_usage")
+        date = data[-1]["readTime"]
+        last_reset = date - timedelta(days=1)
 
-<<<<<<< HEAD
-        return {}
-=======
         attributes = {}
-        attributes["friendly_name"] = "Daily Consumption"
-        attributes["device_class"] = "energy"
-        attributes["state_class"] = "total_increasing"
-        attributes["unit_of_measurement"] = "kWh"
-        if data is not None:
-            if (
-                (len(data) > 0)
-                and (data[-1] is not None)
-                and (data[-1]["readTime"] is not None)
-            ):
-                attributes["date"] = data[-1]["readTime"]
-            if (
-                (len(data) > 1)
-                and (data[-2] is not None)
-                and (data[-2]["readTime"] is not None)
-            ):
-                attributes["last_reset"] = data[-2]["readTime"]
+        attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        attributes["date"] = date
+        attributes["last_reset"] = last_reset
         return attributes
-
-    @property
-    def icon(self):
-        return "mdi:flash"
->>>>>>> master

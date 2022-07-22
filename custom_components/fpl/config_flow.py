@@ -1,20 +1,21 @@
+"""Home Assistant Fpl integration Config Flow"""
 from collections import OrderedDict
 
 import voluptuous as vol
-from .fplapi import FplApi
 
 from homeassistant import config_entries
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.core import callback
 
 from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, CONF_NAME
 
 from .fplapi import (
     LOGIN_RESULT_OK,
+    LOGIN_RESULT_FAILURE,
     LOGIN_RESULT_INVALIDUSER,
     LOGIN_RESULT_INVALIDPASSWORD,
+    FplApi,
 )
-
-from homeassistant.core import callback
 
 
 @callback
@@ -27,6 +28,7 @@ def configured_instances(hass):
 
 
 class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+    """Fpl Config Flow Handler"""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
@@ -57,8 +59,9 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 result = await api.login()
 
                 if result == LOGIN_RESULT_OK:
-                    fplData = await api.async_get_data()
-                    accounts = fplData["accounts"]
+
+                    accounts = await api.async_get_open_accounts()
+                    await api.logout()
 
                     user_input["accounts"] = accounts
 
@@ -70,8 +73,8 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 if result == LOGIN_RESULT_INVALIDPASSWORD:
                     self._errors[CONF_PASSWORD] = "invalid_password"
 
-                if result == None:
-                    self._errors["base"] = "auth"
+                if result == LOGIN_RESULT_FAILURE:
+                    self._errors["base"] = "failure"
 
             else:
                 self._errors[CONF_NAME] = "name_exists"
