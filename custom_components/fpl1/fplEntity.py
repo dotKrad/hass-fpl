@@ -31,15 +31,16 @@ class FplEntity(CoordinatorEntity, SensorEntity):
         )
 
     @property
-    def name(self):
-        return f"{DOMAIN.upper()} {self.account} {self.sensorName}"
-
-    @property
     def device_info(self):
         return {
             "identifiers": {(DOMAIN, self.account)},
             "name": f"FPL Account {self.account}",
+<<<<<<< HEAD:custom_components/fpl1/fplEntity.py
             "model": VERSION,
+=======
+            "model": "FPL Monitoring API",
+            "sw_version": VERSION,
+>>>>>>> master:custom_components/fpl/fplEntity.py
             "manufacturer": "Florida Power & Light",
         }
 
