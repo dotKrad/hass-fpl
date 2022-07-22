@@ -6,3 +6,5 @@ custom_components/fpl/__pycache__/
 .vscode/launch.json
 
 test.py
+
+custom_components/fpl1/__pycache__/
