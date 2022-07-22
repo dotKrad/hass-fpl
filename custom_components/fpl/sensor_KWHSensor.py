@@ -1,6 +1,5 @@
 """energy sensors"""
 from datetime import date, timedelta
-import datetime
 from homeassistant.components.sensor import (
     STATE_CLASS_TOTAL_INCREASING,
     STATE_CLASS_TOTAL,
