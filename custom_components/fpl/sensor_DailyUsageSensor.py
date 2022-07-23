@@ -1,6 +1,6 @@
 """Daily Usage Sensors"""
-from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING
 from datetime import timedelta
+from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING
 from .fplEntity import FplEnergyEntity, FplMoneyEntity
 
 
