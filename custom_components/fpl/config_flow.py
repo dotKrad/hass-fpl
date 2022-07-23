@@ -7,7 +7,8 @@ from homeassistant import config_entries
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.core import callback
 
-from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, CONF_NAME
+from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_NAME
+from .const import DOMAIN
 
 from .fplapi import (
     LOGIN_RESULT_OK,
@@ -38,7 +39,7 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
     async def async_step_user(
-        self, user_input={}
+        self, user_input=None
     ):  # pylint: disable=dangerous-default-value
         """Handle a flow initialized by the user."""
         self._errors = {}

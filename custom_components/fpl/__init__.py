@@ -14,11 +14,10 @@ from .fplapi import FplApi
 from .const import (
     DOMAIN,
     DOMAIN_DATA,
-    CONF_USERNAME,
-    CONF_PASSWORD,
     PLATFORMS,
     STARTUP_MESSAGE,
 )
+from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from .fplDataUpdateCoordinator import FplDataUpdateCoordinator
 
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
