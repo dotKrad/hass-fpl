@@ -1,4 +1,8 @@
 """Constants for fpl."""
+#
+DEBUG = True
+
+
 # Base component constants
 NAME = "FPL Integration"
 DOMAIN = "fpl"
@@ -24,15 +28,6 @@ PLATFORMS = [SENSOR]
 
 # Device classes
 BINARY_SENSOR_DEVICE_CLASS = "connectivity"
-
-# Configuration
-CONF_BINARY_SENSOR = "binary_sensor"
-CONF_SENSOR = "sensor"
-CONF_SWITCH = "switch"
-CONF_ENABLED = "enabled"
-CONF_NAME = "name"
-CONF_USERNAME = "username"
-CONF_PASSWORD = "password"
 
 # Defaults
 DEFAULT_NAME = DOMAIN

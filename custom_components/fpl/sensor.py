@@ -31,52 +31,60 @@ from .sensor_DailyUsageSensor import (
     FplDailyDeliveredKWHSensor,
     FplDailyReceivedKWHSensor,
 )
-from .const import DOMAIN
+
+from .sensor_test import TestSensor
+
+from .const import DOMAIN, DEBUG
 
 # from .TestSensor import TestSensor
 
 
 async def async_setup_entry(hass, entry, async_add_devices):
     """Setup sensor platform."""
+
     accounts = entry.data.get("accounts")
 
     coordinator = hass.data[DOMAIN][entry.entry_id]
     fpl_accounts = []
 
-    for account in accounts:
-        # Test Sensor
-        # fpl_accounts.append(TestSensor(coordinator, entry, account))
+    if DEBUG:
+        for account in accounts:
+            fpl_accounts.append(TestSensor(coordinator, entry, account))
+    else:
+        for account in accounts:
+            # Test Sensor
+            # fpl_accounts.append(TestSensor(coordinator, entry, account))
 
-        # bill sensors
-        fpl_accounts.append(FplProjectedBillSensor(coordinator, entry, account))
-        fpl_accounts.append(ProjectedBudgetBillSensor(coordinator, entry, account))
-        fpl_accounts.append(ProjectedActualBillSensor(coordinator, entry, account))
-        fpl_accounts.append(DeferedAmountSensor(coordinator, entry, account))
+            # bill sensors
+            fpl_accounts.append(FplProjectedBillSensor(coordinator, entry, account))
+            fpl_accounts.append(ProjectedBudgetBillSensor(coordinator, entry, account))
+            fpl_accounts.append(ProjectedActualBillSensor(coordinator, entry, account))
+            fpl_accounts.append(DeferedAmountSensor(coordinator, entry, account))
 
-        # usage sensors
-        fpl_accounts.append(DailyAverageSensor(coordinator, entry, account))
-        fpl_accounts.append(BudgetDailyAverageSensor(coordinator, entry, account))
-        fpl_accounts.append(ActualDailyAverageSensor(coordinator, entry, account))
+            # usage sensors
+            fpl_accounts.append(DailyAverageSensor(coordinator, entry, account))
+            fpl_accounts.append(BudgetDailyAverageSensor(coordinator, entry, account))
+            fpl_accounts.append(ActualDailyAverageSensor(coordinator, entry, account))
 
-        fpl_accounts.append(FplDailyUsageSensor(coordinator, entry, account))
-        fpl_accounts.append(FplDailyUsageKWHSensor(coordinator, entry, account))
+            fpl_accounts.append(FplDailyUsageSensor(coordinator, entry, account))
+            fpl_accounts.append(FplDailyUsageKWHSensor(coordinator, entry, account))
 
-        # date sensors
-        fpl_accounts.append(CurrentBillDateSensor(coordinator, entry, account))
-        fpl_accounts.append(NextBillDateSensor(coordinator, entry, account))
-        fpl_accounts.append(ServiceDaysSensor(coordinator, entry, account))
-        fpl_accounts.append(AsOfDaysSensor(coordinator, entry, account))
-        fpl_accounts.append(RemainingDaysSensor(coordinator, entry, account))
+            # date sensors
+            fpl_accounts.append(CurrentBillDateSensor(coordinator, entry, account))
+            fpl_accounts.append(NextBillDateSensor(coordinator, entry, account))
+            fpl_accounts.append(ServiceDaysSensor(coordinator, entry, account))
+            fpl_accounts.append(AsOfDaysSensor(coordinator, entry, account))
+            fpl_accounts.append(RemainingDaysSensor(coordinator, entry, account))
 
-        # KWH sensors
-        fpl_accounts.append(ProjectedKWHSensor(coordinator, entry, account))
-        fpl_accounts.append(DailyAverageKWHSensor(coordinator, entry, account))
-        fpl_accounts.append(BillToDateKWHSensor(coordinator, entry, account))
+            # KWH sensors
+            fpl_accounts.append(ProjectedKWHSensor(coordinator, entry, account))
+            fpl_accounts.append(DailyAverageKWHSensor(coordinator, entry, account))
+            fpl_accounts.append(BillToDateKWHSensor(coordinator, entry, account))
 
-        fpl_accounts.append(NetReceivedKWHSensor(coordinator, entry, account))
-        fpl_accounts.append(NetDeliveredKWHSensor(coordinator, entry, account))
+            fpl_accounts.append(NetReceivedKWHSensor(coordinator, entry, account))
+            fpl_accounts.append(NetDeliveredKWHSensor(coordinator, entry, account))
 
-        fpl_accounts.append(FplDailyReceivedKWHSensor(coordinator, entry, account))
-        fpl_accounts.append(FplDailyDeliveredKWHSensor(coordinator, entry, account))
+            fpl_accounts.append(FplDailyReceivedKWHSensor(coordinator, entry, account))
+            fpl_accounts.append(FplDailyDeliveredKWHSensor(coordinator, entry, account))
 
     async_add_devices(fpl_accounts)
