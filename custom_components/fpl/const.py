@@ -47,3 +47,6 @@ If you have any issues with this you need to open an issue here:
 {ISSUE_URL}
 -------------------------------------------------------------------
 """
+
+DEFAULT_CONF_USERNAME = ""
+DEFAULT_CONF_PASSWORD = ""

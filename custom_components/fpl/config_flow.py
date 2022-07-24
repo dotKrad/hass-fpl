@@ -8,7 +8,7 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.core import callback
 
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_NAME
-from .const import DOMAIN
+from .const import DEFAULT_CONF_PASSWORD, DEFAULT_CONF_USERNAME, DOMAIN
 
 from .fplapi import (
     LOGIN_RESULT_OK,
@@ -17,6 +17,11 @@ from .fplapi import (
     LOGIN_RESULT_INVALIDPASSWORD,
     FplApi,
 )
+
+try:
+    from .secrets import DEFAULT_CONF_PASSWORD, DEFAULT_CONF_USERNAME
+except:
+    pass
 
 
 @callback
@@ -86,8 +91,8 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _show_config_form(self, user_input):
         """Show the configuration form to edit location data."""
-        username = ""
-        password = ""
+        username = DEFAULT_CONF_USERNAME
+        password = DEFAULT_CONF_PASSWORD
 
         if user_input is not None:
             if CONF_USERNAME in user_input:
