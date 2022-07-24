@@ -60,7 +60,11 @@ class FplEntity(CoordinatorEntity, SensorEntity):
 
     def getData(self, field):
         """call this method to retrieve sensor data"""
-        return self.coordinator.data.get(self.account).get(field, None)
+        if self.coordinator.data is not None:
+            account = self.coordinator.data.get(self.account)
+            if account is not None:
+                return account.get(field, None)
+        return None
 
 
 class FplEnergyEntity(FplEntity):
