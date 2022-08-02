@@ -8,15 +8,18 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.core import callback
 
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_NAME
-from .const import DEFAULT_CONF_PASSWORD, DEFAULT_CONF_USERNAME, DOMAIN
 
-from .fplapi import (
+from .const import (
+    DEFAULT_CONF_PASSWORD,
+    DEFAULT_CONF_USERNAME,
+    DOMAIN,
     LOGIN_RESULT_OK,
     LOGIN_RESULT_FAILURE,
     LOGIN_RESULT_INVALIDUSER,
     LOGIN_RESULT_INVALIDPASSWORD,
-    FplApi,
 )
+
+from .fplapi import FplApi
 
 try:
     from .secrets import DEFAULT_CONF_PASSWORD, DEFAULT_CONF_USERNAME
@@ -61,12 +64,15 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
             if username not in configured_instances(self.hass):
                 session = async_create_clientsession(self.hass)
-                api = FplApi(username, password, session)
+                api = FplApi(username, password, session, loop=self.hass.loop)
                 result = await api.login()
 
                 if result == LOGIN_RESULT_OK:
+                    info = await api.get_basic_info()
 
-                    accounts = await api.async_get_open_accounts()
+                    accounts = info["accounts"]
+
+                    # accounts = await api.async_get_open_accounts()
                     await api.logout()
 
                     user_input["accounts"] = accounts

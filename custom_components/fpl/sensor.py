@@ -43,6 +43,9 @@ async def async_setup_entry(hass, entry, async_add_devices):
     """Setup sensor platform."""
 
     accounts = entry.data.get("accounts")
+    territory = entry.data.get("territory")
+
+    print(f"setting sensor for {territory}")
 
     coordinator = hass.data[DOMAIN][entry.entry_id]
     fpl_accounts = []
@@ -50,6 +53,8 @@ async def async_setup_entry(hass, entry, async_add_devices):
     if DEBUG:
         for account in accounts:
             fpl_accounts.append(TestSensor(coordinator, entry, account))
+
+            fpl_accounts.append(FplProjectedBillSensor(coordinator, entry, account))
     else:
         for account in accounts:
             # Test Sensor

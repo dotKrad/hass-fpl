@@ -71,12 +71,11 @@ class FplEnergyEntity(FplEntity):
     """Represents a energy sensor"""
 
     _attr_native_unit_of_measurement = ENERGY_KILO_WATT_HOUR
-    _attr_device_class = DEVICE_CLASS_ENERGY
+    # _attr_device_class = DEVICE_CLASS_ENERGY
     _attr_icon = "mdi:flash"
-    _attr_state_class = STATE_CLASS_MEASUREMENT
 
     @property
-    def last_reset(self) -> datetime:
+    def last_reset_not_use(self) -> datetime:
         """Return the time when the sensor was last reset, if any."""
 
         today = datetime.today()

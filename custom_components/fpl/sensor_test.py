@@ -5,6 +5,7 @@ from homeassistant.components.sensor import (
     DEVICE_CLASS_ENERGY,
 )
 from homeassistant.core import callback
+from homeassistant.const import STATE_UNKNOWN
 from .fplEntity import FplEnergyEntity
 
 
@@ -24,20 +25,26 @@ class TestSensor(FplEnergyEntity):
         if data is not None and len(data) > 0 and "usage" in data[-1].keys():
             return data[-1]["usage"]
 
-        return None
+        return STATE_UNKNOWN
 
     @property
     def last_reset(self) -> datetime | None:
+        last_reset = None
         data = self.getData("daily_usage")
-        date = data[-1]["readTime"]
-        last_reset = date - timedelta(days=1)
+        if len(data) > 0 and "readTime" in data[-1]:
+            date = data[-1]["readTime"]
+            last_reset = datetime.combine(date, datetime.min.time())
+            print(f"setting last reset {last_reset}")
         return last_reset
 
     def customAttributes(self):
         """Return the state attributes."""
+        print("setting custom attributes")
         data = self.getData("daily_usage")
         date = data[-1]["readTime"]
 
         attributes = {}
         attributes["date"] = date
+        last_reset = date - timedelta(days=1)
+        # attributes["last_reset"] = last_reset
         return attributes

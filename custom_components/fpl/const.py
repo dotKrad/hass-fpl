@@ -1,7 +1,9 @@
 """Constants for fpl."""
 #
-DEBUG = True
+DEBUG = False
 
+TIMEOUT = 5
+API_HOST = "https://www.fpl.com"
 
 # Base component constants
 NAME = "FPL Integration"
@@ -45,3 +47,11 @@ If you have any issues with this you need to open an issue here:
 
 DEFAULT_CONF_USERNAME = ""
 DEFAULT_CONF_PASSWORD = ""
+
+
+# Api login result
+LOGIN_RESULT_OK = "OK"
+LOGIN_RESULT_INVALIDUSER = "NOTVALIDUSER"
+LOGIN_RESULT_INVALIDPASSWORD = "FAILEDPASSWORD"
+LOGIN_RESULT_UNAUTHORIZED = "UNAUTHORIZED"
+LOGIN_RESULT_FAILURE = "FAILURE"

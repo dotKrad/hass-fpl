@@ -9,6 +9,7 @@ from homeassistant.core import Config, HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import Throttle
+from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 
 from .fplapi import FplApi
 from .const import (
@@ -17,7 +18,7 @@ from .const import (
     PLATFORMS,
     STARTUP_MESSAGE,
 )
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
+
 from .fplDataUpdateCoordinator import FplDataUpdateCoordinator
 
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
@@ -62,7 +63,7 @@ async def async_setup_entry(hass, entry):
     # Configure the client.
     _LOGGER.info("Configuring the client")
     session = async_get_clientsession(hass)
-    client = FplApi(username, password, session)
+    client = FplApi(username, password, session, hass.loop)
 
     coordinator = FplDataUpdateCoordinator(hass, client=client)
     await coordinator.async_refresh()
