@@ -107,7 +107,7 @@ class FplMainRegionApiClient:
         try:
             async with async_timeout.timeout(TIMEOUT):
                 await self.session.get(URL_LOGOUT)
-        except Exception:
+        except:
             pass
 
     async def update(self, account) -> dict:
@@ -216,7 +216,7 @@ class FplMainRegionApiClient:
                 data["daily_avg"] = dailyAvg
                 data["avg_high_temp"] = avgHighTemp
 
-        except Exception:
+        except:
             pass
 
         return data
@@ -225,6 +225,7 @@ class FplMainRegionApiClient:
         """Get budget billing data"""
         _LOGGER.info("Getting budget billing data")
         data = {}
+
         try:
             async with async_timeout.timeout(TIMEOUT):
                 response = await self.session.get(
@@ -257,10 +258,6 @@ class FplMainRegionApiClient:
 
                     data["budget_billing_projected_bill"] = float(projectedBudgetBill)
 
-        except Exception as e:
-            _LOGGER.error("Error getting BBL: %s", e)
-
-        try:
             async with async_timeout.timeout(TIMEOUT):
                 response = await self.session.get(
                     URL_BUDGET_BILLING_GRAPH.format(account=account)
@@ -269,9 +266,8 @@ class FplMainRegionApiClient:
                     r = (await response.json())["data"]
                     data["bill_to_date"] = float(r["eleAmt"])
                     data["defered_amount"] = float(r["defAmt"])
-
-        except Exception as e:
-            _LOGGER.error("Error getting BBL: %s", e)
+        except:
+            pass
 
         return data
 
@@ -351,8 +347,8 @@ class FplMainRegionApiClient:
                         r["CurrentUsage"]["dailyAverageKWH"]
                     )
                     data["billToDateKWH"] = float(r["CurrentUsage"]["billToDateKWH"])
-                    data["recMtrReading"] = int(r["CurrentUsage"]["recMtrReading"])
-                    data["delMtrReading"] = int(r["CurrentUsage"]["delMtrReading"])
+                    data["recMtrReading"] = int(r["CurrentUsage"]["recMtrReading"] or 0)
+                    data["delMtrReading"] = int(r["CurrentUsage"]["delMtrReading"] or 0)
                     data["billStartDate"] = r["CurrentUsage"]["billStartDate"]
         except:
             pass
@@ -365,6 +361,7 @@ class FplMainRegionApiClient:
 
         JSON = {"startDate": str(lastBilledDate.strftime("%m%d%Y"))}
         data = {}
+
         try:
             async with async_timeout.timeout(TIMEOUT):
                 response = await self.session.post(
@@ -381,8 +378,7 @@ class FplMainRegionApiClient:
                         else:
                             rr = full
                         data[e["category"].replace(" ", "_")] = rr
-
-        except Exception:
+        except:
             pass
 
         return {"energy_percent_by_applicance": data}

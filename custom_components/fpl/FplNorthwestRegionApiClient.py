@@ -1,5 +1,5 @@
 """FPL Northwest data collection api client"""
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import async_timeout
 import boto3
@@ -143,25 +143,31 @@ class FplNorthwestRegionApiClient:
             programInfo = accountSumary["programInfo"]
 
             result["budget_bill"] = False
-            result["bill_to_date"] = billAndMetterInfo["asOfDateAmount"]
 
-            result["projected_bill"] = billAndMetterInfo["projBillAmount"]
-            result["projectedKWH"] = billAndMetterInfo["projBillKWH"]
+            result["projected_bill"] = float(billAndMetterInfo["projBillAmount"] or 0)
+            result["projectedKWH"] = int(billAndMetterInfo["projBillKWH"] or 0)
 
-            result["bill_to_date"] = billAndMetterInfo["asOfDateUsage"]
-            result["billToDateKWH"] = billAndMetterInfo["asOfDateUsage"]
+            result["bill_to_date"] = float(billAndMetterInfo["asOfDateAmount"] or 0)
+            result["billToDateKWH"] = int(billAndMetterInfo["asOfDateUsage"] or 0)
 
-            result["daily_avg"] = billAndMetterInfo["dailyAvgAmount"]
-            result["dailyAverageKWH"] = billAndMetterInfo["dailyAvgKwh"]
+            result["daily_avg"] = float(billAndMetterInfo["dailyAvgAmount"] or 0)
+            result["dailyAverageKWH"] = int(billAndMetterInfo["dailyAvgKwh"] or 0)
 
-            result["billStartDate"] = programInfo["currentBillDate"]
-            result["next_bill_date"] = programInfo["nextBillDate"]
+            start = datetime.fromisoformat(programInfo["currentBillDate"])
+            # + timedelta(days=1)
 
-            start = datetime.fromisoformat(result["billStartDate"])
-            end = datetime.fromisoformat(result["next_bill_date"])
+            end = datetime.fromisoformat(programInfo["nextBillDate"])
             today = datetime.fromisoformat(data["today"])
 
-            result["service_days"] = (end - start).days
-            result["as_of_days"] = (today - start).days
+            # result["billStartDate"] = programInfo["currentBillDate"]
+            result["current_bill_date"] = start.strftime("%Y-%m-%d")
+            result["next_bill_date"] = programInfo["nextBillDate"]
+
+            service_days = (end - start).days
+            as_of_days = (today - start).days
+
+            result["service_days"] = service_days
+            result["as_of_days"] = as_of_days
+            result["remaining_days"] = service_days - as_of_days
 
         return result
