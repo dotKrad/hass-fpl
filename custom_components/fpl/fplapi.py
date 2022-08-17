@@ -3,11 +3,13 @@ import sys
 import json
 import logging
 
-from datetime import datetime, timedelta
 import async_timeout
 
 
 from .const import (
+    CONF_ACCOUNTS,
+    CONF_TERRITORY,
+    FPL_MAINREGION,
     LOGIN_RESULT_FAILURE,
     LOGIN_RESULT_OK,
     TIMEOUT,
@@ -22,10 +24,6 @@ _LOGGER = logging.getLogger(__package__)
 
 
 URL_TERRITORY = API_HOST + "/cs/customer/v1/territoryid/public/territory"
-
-
-FPL_MAINREGION = "FL01"
-FPL_NORTHWEST = "FL02"
 
 
 class NoTerrytoryAvailableException(Exception):
@@ -88,51 +86,25 @@ class FplApi:
         """returns basic info for sensor initialization"""
         await self.initialize()
         data = {}
-        data["territory"] = self._territory
-        data["accounts"] = await self.apiClient.get_open_accounts()
+        data[CONF_TERRITORY] = self._territory
+        data[CONF_ACCOUNTS] = await self.apiClient.get_open_accounts()
 
         return data
 
     async def async_get_data(self) -> dict:
         """Get data from fpl api"""
         await self.initialize()
-        data = {
-            "as_of_days": 5,
-            "avg_high_temp": 89,
-            "billStartDate": "07-27-2022",
-            "billToDateKWH": "196",
-            "bill_to_date": 160.1,
-            "budget_bill": True,
-            "budget_billing_bill_to_date": 18.61,
-            "budget_billing_daily_avg": 3.72,
-            "budget_billing_projected_bill": 111.69,
-            "current_bill_date": "2022-07-27",
-            "dailyAverageKWH": 39,
-            "daily_avg": 5.25,
-            "daily_usage": [],
-            "defered_amount": -6.84,
-            "delMtrReading": "15929",
-            "energy_percent_by_applicance": {},
-            "meterSerialNo": "20948426",
-            "next_bill_date": "2022-08-26",
-            "projectedKWH": "1176",
-            "projected_bill": 163.77,
-            "recMtrReading": "",
-            "remaining_days": 25,
-            "service_days": 30,
-        }
-        data["accounts"] = []
+        data = {}
+        data[CONF_ACCOUNTS] = []
 
-        data["territory"] = self._territory
-
-        print(self._territory)
+        data[CONF_TERRITORY] = self._territory
 
         login_result = await self.apiClient.login()
 
         if login_result == LOGIN_RESULT_OK:
             accounts = await self.apiClient.get_open_accounts()
 
-            data["accounts"] = accounts
+            data[CONF_ACCOUNTS] = accounts
             for account in accounts:
                 data[account] = await self.apiClient.update(account)
 

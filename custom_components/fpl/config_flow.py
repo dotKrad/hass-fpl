@@ -10,6 +10,8 @@ from homeassistant.core import callback
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_NAME
 
 from .const import (
+    CONF_ACCOUNTS,
+    CONF_TERRITORY,
     DEFAULT_CONF_PASSWORD,
     DEFAULT_CONF_USERNAME,
     DOMAIN,
@@ -70,12 +72,13 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 if result == LOGIN_RESULT_OK:
                     info = await api.get_basic_info()
 
-                    accounts = info["accounts"]
+                    accounts = info[CONF_ACCOUNTS]
 
                     # accounts = await api.async_get_open_accounts()
                     await api.logout()
 
-                    user_input["accounts"] = accounts
+                    user_input[CONF_ACCOUNTS] = accounts
+                    user_input[CONF_TERRITORY] = info[CONF_TERRITORY]
 
                     return self.async_create_entry(title=username, data=user_input)
 
