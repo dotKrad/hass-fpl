@@ -71,3 +71,19 @@ class ProjectedActualBillSensor(FplMoneyEntity):
     @property
     def native_value(self):
         return self.getData("projected_bill")
+
+
+class BillToDateSensor(FplMoneyEntity):
+    """projeted actual bill sensor"""
+
+    # _attr_state_class = STATE_CLASS_TOTAL
+
+    def __init__(self, coordinator, config, account):
+        super().__init__(coordinator, config, account, "Bill To Date")
+
+    @property
+    def native_value(self):
+        if self.getData("budget_bill"):
+            return self.getData("budget_billing_bill_to_date")
+
+        return self.getData("bill_to_date")
