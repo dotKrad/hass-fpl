@@ -8,3 +8,5 @@ custom_components/fpl/__pycache__/
 test.py
 
 custom_components/fpl1/__pycache__/
+
+custom_components/fpl/secrets.py

@@ -7,15 +7,26 @@ from homeassistant import config_entries
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.core import callback
 
-from .const import DOMAIN, CONF_USERNAME, CONF_PASSWORD, CONF_NAME
+from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_NAME
 
-from .fplapi import (
+from .const import (
+    CONF_ACCOUNTS,
+    CONF_TERRITORY,
+    DEFAULT_CONF_PASSWORD,
+    DEFAULT_CONF_USERNAME,
+    DOMAIN,
     LOGIN_RESULT_OK,
     LOGIN_RESULT_FAILURE,
     LOGIN_RESULT_INVALIDUSER,
     LOGIN_RESULT_INVALIDPASSWORD,
-    FplApi,
 )
+
+from .fplapi import FplApi
+
+try:
+    from .secrets import DEFAULT_CONF_PASSWORD, DEFAULT_CONF_USERNAME
+except:
+    pass
 
 
 @callback
@@ -38,7 +49,7 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
     async def async_step_user(
-        self, user_input={}
+        self, user_input=None
     ):  # pylint: disable=dangerous-default-value
         """Handle a flow initialized by the user."""
         self._errors = {}
@@ -55,15 +66,19 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
             if username not in configured_instances(self.hass):
                 session = async_create_clientsession(self.hass)
-                api = FplApi(username, password, session)
+                api = FplApi(username, password, session, loop=self.hass.loop)
                 result = await api.login()
 
                 if result == LOGIN_RESULT_OK:
+                    info = await api.get_basic_info()
 
-                    accounts = await api.async_get_open_accounts()
+                    accounts = info[CONF_ACCOUNTS]
+
+                    # accounts = await api.async_get_open_accounts()
                     await api.logout()
 
-                    user_input["accounts"] = accounts
+                    user_input[CONF_ACCOUNTS] = accounts
+                    user_input[CONF_TERRITORY] = info[CONF_TERRITORY]
 
                     return self.async_create_entry(title=username, data=user_input)
 
@@ -85,8 +100,8 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _show_config_form(self, user_input):
         """Show the configuration form to edit location data."""
-        username = ""
-        password = ""
+        username = DEFAULT_CONF_USERNAME
+        password = DEFAULT_CONF_PASSWORD
 
         if user_input is not None:
             if CONF_USERNAME in user_input:

@@ -10,7 +10,7 @@ class DailyAverageSensor(FplMoneyEntity):
         super().__init__(coordinator, config, account, "Daily Average")
 
     @property
-    def state(self):
+    def native_value(self):
         budget = self.getData("budget_bill")
         budget_billing_projected_bill = self.getData("budget_billing_daily_avg")
 
@@ -22,7 +22,7 @@ class DailyAverageSensor(FplMoneyEntity):
     def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["state_class"] = STATE_CLASS_TOTAL
+        # attributes["state_class"] = STATE_CLASS_TOTAL
         return attributes
 
 
@@ -33,13 +33,13 @@ class BudgetDailyAverageSensor(FplMoneyEntity):
         super().__init__(coordinator, config, account, "Budget Daily Average")
 
     @property
-    def state(self):
+    def native_value(self):
         return self.getData("budget_billing_daily_avg")
 
     def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["state_class"] = STATE_CLASS_TOTAL
+        # attributes["state_class"] = STATE_CLASS_TOTAL
         return attributes
 
 
@@ -50,11 +50,11 @@ class ActualDailyAverageSensor(FplMoneyEntity):
         super().__init__(coordinator, config, account, "Actual Daily Average")
 
     @property
-    def state(self):
+    def native_value(self):
         return self.getData("daily_avg")
 
     def customAttributes(self):
         """Return the state attributes."""
         attributes = {}
-        attributes["state_class"] = STATE_CLASS_TOTAL
+        # attributes["state_class"] = STATE_CLASS_TOTAL
         return attributes

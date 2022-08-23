@@ -17,6 +17,8 @@ from .const import DOMAIN, VERSION, ATTRIBUTION
 class FplEntity(CoordinatorEntity, SensorEntity):
     """FPL base entity"""
 
+    _attr_attribution = ATTRIBUTION
+
     def __init__(self, coordinator, config_entry, account, sensorName):
         super().__init__(coordinator)
         self.config_entry = config_entry
@@ -26,9 +28,8 @@ class FplEntity(CoordinatorEntity, SensorEntity):
     @property
     def unique_id(self):
         """Return the ID of this device."""
-        return "{}{}{}".format(
-            DOMAIN, self.account, self.sensorName.lower().replace(" ", "")
-        )
+        sensorName = self.sensorName.lower().replace(" ", "")
+        return f"{DOMAIN}{self.account}{sensorName}"
 
     @property
     def name(self):
@@ -51,93 +52,53 @@ class FplEntity(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = {
-            "attribution": ATTRIBUTION,
-            "integration": "FPL",
+            #            "attribution": ATTRIBUTION,
+            # "integration": "FPL",
         }
         attributes.update(self.customAttributes())
         return attributes
 
     def getData(self, field):
         """call this method to retrieve sensor data"""
-        return self.coordinator.data.get(self.account).get(field, None)
+        if self.coordinator.data is not None:
+            account = self.coordinator.data.get(self.account)
+            if account is not None:
+                return account.get(field, None)
+        return None
 
 
 class FplEnergyEntity(FplEntity):
     """Represents a energy sensor"""
 
-    @property
-    def state_class(self) -> str:
-        """Return the state class of this entity, from STATE_CLASSES, if any."""
-
-        return STATE_CLASS_MEASUREMENT
+    _attr_native_unit_of_measurement = ENERGY_KILO_WATT_HOUR
+    # _attr_device_class = DEVICE_CLASS_ENERGY
+    _attr_icon = "mdi:flash"
 
     @property
-    def last_reset(self) -> datetime:
+    def last_reset_not_use(self) -> datetime:
         """Return the time when the sensor was last reset, if any."""
 
         today = datetime.today()
         yesterday = today - timedelta(days=1)
         return datetime.combine(yesterday, datetime.min.time())
 
-    @property
-    def device_class(self) -> str:
-        """Return the class of this device, from component DEVICE_CLASSES."""
-        return DEVICE_CLASS_ENERGY
-
-    @property
-    def unit_of_measurement(self) -> str:
-        """Return the unit of measurement of this entity, if any."""
-        return ENERGY_KILO_WATT_HOUR
-
-    @property
-    def icon(self):
-        return "mdi:flash"
-
 
 class FplMoneyEntity(FplEntity):
     """Represents a money sensor"""
 
-    @property
-    def icon(self):
-        return "mdi:currency-usd"
-
-    @property
-    def device_class(self) -> str:
-        """Return the class of this device, from component DEVICE_CLASSES."""
-        return DEVICE_CLASS_MONETARY
-
-    @property
-    def unit_of_measurement(self) -> str:
-        """Return the unit of measurement of this entity, if any."""
-        return CURRENCY_DOLLAR
+    _attr_native_unit_of_measurement = CURRENCY_DOLLAR
+    _attr_device_class = DEVICE_CLASS_MONETARY
+    _attr_icon = "mdi:currency-usd"
 
 
 class FplDateEntity(FplEntity):
     """Represents a date or days"""
 
-    # @property
-    # def device_class(self) -> str:
-    #    """Return the class of this device, from component DEVICE_CLASSES."""
-    #    return DEVICE_CLASS_DATE
-
-    @property
-    def icon(self):
-        return "mdi:calendar"
+    _attr_icon = "mdi:calendar"
 
 
 class FplDayEntity(FplEntity):
     """Represents a date or days"""
 
-    # @property
-    # def device_class(self) -> str:
-    #    """Return the class of this device, from component DEVICE_CLASSES."""
-    #    return DEVICE_CLASS_DATE
-
-    @property
-    def icon(self):
-        return "mdi:calendar"
-
-    @property
-    def unit_of_measurement(self) -> str:
-        """Return the unit of measurement of this entity, if any."""
-        return "days"
+    _attr_native_unit_of_measurement = "days"
+    _attr_icon = "mdi:calendar"
