@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 import aiohttp
 import async_timeout
 
@@ -274,7 +274,7 @@ class FplMainRegionApiClient:
     async def __getDataFromEnergyService(
         self, account, premise, lastBilledDate
     ) -> dict:
-        _LOGGER.info("Getting data from energy service")
+        _LOGGER.info("Getting energy service data")
 
         date = str(lastBilledDate.strftime("%m%d%Y"))
         JSON = {
@@ -357,7 +357,7 @@ class FplMainRegionApiClient:
 
     async def __getDataFromApplianceUsage(self, account, lastBilledDate) -> dict:
         """get data from appliance usage"""
-        _LOGGER.info("Getting data from appliance usage")
+        _LOGGER.info("Getting appliance usage data")
 
         JSON = {"startDate": str(lastBilledDate.strftime("%m%d%Y"))}
         data = {}
