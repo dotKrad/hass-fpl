@@ -11,7 +11,12 @@ class CurrentBillDateSensor(FplDateEntity):
 
     @property
     def native_value(self):
-        return datetime.date.fromisoformat(self.getData("current_bill_date"))
+        current_bill_date = self.getData("current_bill_date")
+
+        if current_bill_date is not None:
+            self._attr_native_value = datetime.date.fromisoformat(current_bill_date)
+
+        return self._attr_native_value
 
 
 class NextBillDateSensor(FplDateEntity):
@@ -22,7 +27,12 @@ class NextBillDateSensor(FplDateEntity):
 
     @property
     def native_value(self):
-        return datetime.date.fromisoformat(self.getData("next_bill_date"))
+        next_bill_date = self.getData("next_bill_date")
+
+        if next_bill_date is not None:
+            self._attr_native_value = datetime.date.fromisoformat(next_bill_date)
+
+        return self._attr_native_value
 
 
 class ServiceDaysSensor(FplDayEntity):
@@ -33,7 +43,12 @@ class ServiceDaysSensor(FplDayEntity):
 
     @property
     def native_value(self):
-        return self.getData("service_days")
+        service_days = self.getData("service_days")
+
+        if service_days is not None:
+            self._attr_native_value = service_days
+
+        return self._attr_native_value
 
 
 class AsOfDaysSensor(FplDayEntity):
@@ -44,7 +59,12 @@ class AsOfDaysSensor(FplDayEntity):
 
     @property
     def native_value(self):
-        return self.getData("as_of_days")
+        as_of_days = self.getData("as_of_days")
+
+        if as_of_days is not None:
+            self._attr_native_value = as_of_days
+
+        return self._attr_native_value
 
 
 class RemainingDaysSensor(FplDayEntity):
@@ -55,4 +75,9 @@ class RemainingDaysSensor(FplDayEntity):
 
     @property
     def native_value(self):
-        return self.getData("remaining_days")
+        remaining_days = self.getData("remaining_days")
+
+        if remaining_days is not None:
+            self._attr_native_value = remaining_days
+
+        return self._attr_native_value

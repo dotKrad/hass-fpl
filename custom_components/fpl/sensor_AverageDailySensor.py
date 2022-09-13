@@ -12,12 +12,12 @@ class DailyAverageSensor(FplMoneyEntity):
     @property
     def native_value(self):
         budget = self.getData("budget_bill")
-        budget_billing_projected_bill = self.getData("budget_billing_daily_avg")
+        daily_avg = self.getData("daily_avg")
 
-        if budget and budget_billing_projected_bill is not None:
-            return self.getData("budget_billing_daily_avg")
+        if budget and daily_avg is not None:
+            self._attr_native_value = daily_avg
 
-        return self.getData("daily_avg")
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
@@ -34,7 +34,12 @@ class BudgetDailyAverageSensor(FplMoneyEntity):
 
     @property
     def native_value(self):
-        return self.getData("budget_billing_daily_avg")
+        budget_billing_daily_avg = self.getData("budget_billing_daily_avg")
+
+        if budget_billing_daily_avg is not None:
+            self._attr_native_value = budget_billing_daily_avg
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
@@ -51,7 +56,12 @@ class ActualDailyAverageSensor(FplMoneyEntity):
 
     @property
     def native_value(self):
-        return self.getData("daily_avg")
+        daily_avg = self.getData("daily_avg")
+
+        if daily_avg is not None:
+            self._attr_native_value = daily_avg
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""

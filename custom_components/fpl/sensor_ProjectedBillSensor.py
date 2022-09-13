@@ -19,10 +19,15 @@ class FplProjectedBillSensor(FplMoneyEntity):
         budget = self.getData("budget_bill")
         budget_billing_projected_bill = self.getData("budget_billing_projected_bill")
 
-        if budget and budget_billing_projected_bill is not None:
-            return self.getData("budget_billing_projected_bill")
+        projected_bill = self.getData("projected_bill")
 
-        return self.getData("projected_bill")
+        if budget and budget_billing_projected_bill is not None:
+            self._attr_native_value = self.getData("budget_billing_projected_bill")
+        else:
+            if projected_bill is not None:
+                self._attr_native_value = projected_bill
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
@@ -42,9 +47,13 @@ class DeferedAmountSensor(FplMoneyEntity):
 
     @property
     def native_value(self):
-        if self.getData("budget_bill"):
-            return self.getData("defered_amount")
-        return 0
+        budget_bill = self.getData("budget_bill")
+        defered_amount = self.getData("defered_amount")
+
+        if budget_bill and defered_amount is not None:
+            self._attr_native_value = defered_amount
+
+        return self._attr_native_value
 
 
 class ProjectedBudgetBillSensor(FplMoneyEntity):
@@ -57,7 +66,12 @@ class ProjectedBudgetBillSensor(FplMoneyEntity):
 
     @property
     def native_value(self):
-        return self.getData("budget_billing_projected_bill")
+        budget_billing_projected_bill = self.getData("budget_billing_projected_bill")
+
+        if budget_billing_projected_bill is not None:
+            self._attr_native_value = budget_billing_projected_bill
+
+        return self._attr_native_value
 
 
 class ProjectedActualBillSensor(FplMoneyEntity):
@@ -70,7 +84,12 @@ class ProjectedActualBillSensor(FplMoneyEntity):
 
     @property
     def native_value(self):
-        return self.getData("projected_bill")
+        projected_bill = self.getData("projected_bill")
+
+        if projected_bill is not None:
+            self._attr_native_value = projected_bill
+
+        return self._attr_native_value
 
 
 class BillToDateSensor(FplMoneyEntity):
@@ -83,7 +102,13 @@ class BillToDateSensor(FplMoneyEntity):
 
     @property
     def native_value(self):
-        if self.getData("budget_bill"):
-            return self.getData("budget_billing_bill_to_date")
+        budget_bill = self.getData("budget_bill")
+        budget_billing_bill_to_date = self.getData("budget_billing_bill_to_date")
+        bill_to_date = self.getData("bill_to_date")
 
-        return self.getData("bill_to_date")
+        if budget_bill:
+            self._attr_native_value = budget_billing_bill_to_date
+        else:
+            self._attr_native_value = bill_to_date
+
+        return self._attr_native_value

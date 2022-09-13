@@ -15,7 +15,12 @@ class ProjectedKWHSensor(FplEnergyEntity):
 
     @property
     def native_value(self):
-        return self.getData("projectedKWH")
+        projectedKWH = self.getData("projectedKWH")
+
+        if projectedKWH is not None:
+            self._attr_native_value = projectedKWH
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
@@ -32,7 +37,12 @@ class DailyAverageKWHSensor(FplEnergyEntity):
 
     @property
     def native_value(self):
-        return self.getData("dailyAverageKWH")
+        dailyAverageKWH = self.getData("dailyAverageKWH")
+
+        if dailyAverageKWH is not None:
+            self._attr_native_value = dailyAverageKWH
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
@@ -49,7 +59,12 @@ class BillToDateKWHSensor(FplEnergyEntity):
 
     @property
     def native_value(self):
-        return self.getData("billToDateKWH")
+        billToDateKWH = self.getData("billToDateKWH")
+
+        if billToDateKWH is not None:
+            self._attr_native_value = billToDateKWH
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
@@ -73,7 +88,12 @@ class NetReceivedKWHSensor(FplEnergyEntity):
 
     @property
     def native_value(self):
-        return self.getData("recMtrReading")
+        recMtrReading = self.getData("recMtrReading")
+
+        if recMtrReading is not None:
+            self._attr_native_value = recMtrReading
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
@@ -90,7 +110,12 @@ class NetDeliveredKWHSensor(FplEnergyEntity):
 
     @property
     def native_value(self):
-        return self.getData("delMtrReading")
+        delMtrReading = self.getData("delMtrReading")
+
+        if delMtrReading is not None:
+            self._attr_native_value = delMtrReading
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
