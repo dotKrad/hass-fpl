@@ -54,6 +54,7 @@ class FplApi:
 
             territoryArray = json_data["data"]["territory"]
             if len(territoryArray) == 0:
+                # returns main region by default in case no regions found
                 return FPL_MAINREGION
 
             self._territory = territoryArray[0]
