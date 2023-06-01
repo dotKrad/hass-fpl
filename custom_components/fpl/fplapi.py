@@ -26,10 +26,6 @@ _LOGGER = logging.getLogger(__package__)
 URL_TERRITORY = API_HOST + "/cs/customer/v1/territoryid/public/territory"
 
 
-class NoTerrytoryAvailableException(Exception):
-    """Thrown when not possible to determine user territory"""
-
-
 class FplApi:
     """A class for getting energy usage information from Florida Power & Light."""
 
@@ -46,6 +42,7 @@ class FplApi:
 
     async def getTerritory(self):
         """get territory"""
+        _LOGGER.debug("Getting territory")
         if self._territory is not None:
             return self._territory
 
@@ -58,9 +55,9 @@ class FplApi:
 
             territoryArray = json_data["data"]["territory"]
             if len(territoryArray) == 0:
-                raise NoTerrytoryAvailableException()
+                # returns main region by default in case no regions found
+                return FPL_MAINREGION
 
-            self._territory = territoryArray[0]
             return territoryArray[0]
 
     def isMainRegion(self):

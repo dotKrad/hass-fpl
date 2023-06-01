@@ -11,3 +11,7 @@ class ForceChangePasswordException(WarrantException):
 
 class TokenVerificationException(WarrantException):
     """Raised when token verification fails."""
+
+
+class NoTerrytoryAvailableException(Exception):
+    """Thrown when not possible to determine user territory"""

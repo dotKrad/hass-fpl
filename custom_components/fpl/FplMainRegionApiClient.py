@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 import aiohttp
 import async_timeout
 
@@ -107,8 +107,8 @@ class FplMainRegionApiClient:
         try:
             async with async_timeout.timeout(TIMEOUT):
                 await self.session.get(URL_LOGOUT)
-        except:
-            pass
+        except Exception as e:
+            _LOGGER.error(e)
 
     async def update(self, account) -> dict:
         """Get data from resources endpoint"""
@@ -186,6 +186,8 @@ class FplMainRegionApiClient:
         # )
 
         data.update(await self.__getDataFromApplianceUsage(account, currentBillDate))
+        data.update(await self.__getDataFromBalance(account))
+
         return data
 
     async def __getFromProjectedBill(self, account, premise, currentBillDate) -> dict:
@@ -203,7 +205,6 @@ class FplMainRegionApiClient:
                 )
 
             if response.status == 200:
-
                 projectedBillData = (await response.json())["data"]
 
                 billToDate = float(projectedBillData["billToDate"])
@@ -216,8 +217,8 @@ class FplMainRegionApiClient:
                 data["daily_avg"] = dailyAvg
                 data["avg_high_temp"] = avgHighTemp
 
-        except:
-            pass
+        except Exception as e:
+            _LOGGER.error(e)
 
         return data
 
@@ -266,15 +267,15 @@ class FplMainRegionApiClient:
                     r = (await response.json())["data"]
                     data["bill_to_date"] = float(r["eleAmt"])
                     data["defered_amount"] = float(r["defAmt"])
-        except:
-            pass
+        except Exception as e:
+            _LOGGER.error(e)
 
         return data
 
     async def __getDataFromEnergyService(
         self, account, premise, lastBilledDate
     ) -> dict:
-        _LOGGER.info("Getting data from energy service")
+        _LOGGER.info("Getting energy service data")
 
         date = str(lastBilledDate.strftime("%m%d%Y"))
         JSON = {
@@ -304,26 +305,36 @@ class FplMainRegionApiClient:
                     URL_ENERGY_SERVICE.format(account=account), json=JSON
                 )
                 if response.status == 200:
-                    r = (await response.json())["data"]
+                    rd = await response.json()
+                    if "data" not in rd.keys():
+                        return []
+
+                    r = rd["data"]
                     dailyUsage = []
 
                     # totalPowerUsage = 0
-                    if "data" in r["DailyUsage"]:
-                        for daily in r["DailyUsage"]["data"]:
-                            if (
-                                "kwhUsed" in daily.keys()
-                                and "billingCharge" in daily.keys()
-                                and "date" in daily.keys()
-                                and "averageHighTemperature" in daily.keys()
-                            ):
+                    if (
+                        "data" in rd.keys()
+                        and "DailyUsage" in rd["data"]
+                        and "data" in rd["data"]["DailyUsage"]
+                    ):
+                        dailyData = rd["data"]["DailyUsage"]["data"]
+                        for daily in dailyData:
+                            if daily["missingDay"] != "true":
                                 dailyUsage.append(
                                     {
-                                        "usage": daily["kwhUsed"],
-                                        "cost": daily["billingCharge"],
+                                        "usage": daily["kwhUsed"]
+                                        if "kwhUsed" in daily.keys()
+                                        else None,
+                                        "cost": daily["billingCharge"]
+                                        if "billingCharge" in daily.keys()
+                                        else None,
                                         # "date": daily["date"],
                                         "max_temperature": daily[
                                             "averageHighTemperature"
-                                        ],
+                                        ]
+                                        if "averageHighTemperature" in daily.keys()
+                                        else None,
                                         "netDeliveredKwh": daily["netDeliveredKwh"]
                                         if "netDeliveredKwh" in daily.keys()
                                         else 0,
@@ -337,27 +348,26 @@ class FplMainRegionApiClient:
                                         ),
                                     }
                                 )
-                                # totalPowerUsage += int(daily["kwhUsed"])
+                            # totalPowerUsage += int(daily["kwhUsed"])
 
                         # data["total_power_usage"] = totalPowerUsage
                         data["daily_usage"] = dailyUsage
 
-                    data["projectedKWH"] = r["CurrentUsage"]["projectedKWH"]
-                    data["dailyAverageKWH"] = float(
-                        r["CurrentUsage"]["dailyAverageKWH"]
-                    )
-                    data["billToDateKWH"] = float(r["CurrentUsage"]["billToDateKWH"])
-                    data["recMtrReading"] = int(r["CurrentUsage"]["recMtrReading"] or 0)
-                    data["delMtrReading"] = int(r["CurrentUsage"]["delMtrReading"] or 0)
-                    data["billStartDate"] = r["CurrentUsage"]["billStartDate"]
-        except:
-            pass
+                    currentUsage = r["CurrentUsage"]
+                    data["projectedKWH"] = currentUsage["projectedKWH"]
+                    data["dailyAverageKWH"] = float(currentUsage["dailyAverageKWH"])
+                    data["billToDateKWH"] = float(currentUsage["billToDateKWH"])
+                    data["recMtrReading"] = int(currentUsage["recMtrReading"] or 0)
+                    data["delMtrReading"] = int(currentUsage["delMtrReading"] or 0)
+                    data["billStartDate"] = currentUsage["billStartDate"]
+        except Exception as e:
+            _LOGGER.error(e)
 
         return data
 
     async def __getDataFromApplianceUsage(self, account, lastBilledDate) -> dict:
         """get data from appliance usage"""
-        _LOGGER.info("Getting data from appliance usage")
+        _LOGGER.info("Getting appliance usage data")
 
         JSON = {"startDate": str(lastBilledDate.strftime("%m%d%Y"))}
         data = {}
@@ -378,7 +388,32 @@ class FplMainRegionApiClient:
                         else:
                             rr = full
                         data[e["category"].replace(" ", "_")] = rr
-        except:
-            pass
+        except Exception as e:
+            _LOGGER.error(e)
 
         return {"energy_percent_by_applicance": data}
+
+    async def __getDataFromBalance(self, account) -> dict:
+        """get data from appliance usage"""
+        _LOGGER.info("Getting appliance usage data")
+
+        data = {}
+
+        URL_BALANCE = API_HOST + "/api/resources/account/{account}/balance?count=-1"
+
+        try:
+            async with async_timeout.timeout(TIMEOUT):
+                response = await self.session.get(URL_BALANCE.format(account=account))
+                if response.status == 200:
+                    data = (await response.json())["data"]
+
+                    indice = [i for i, x in enumerate(data) if x["details"] == "DEBT"][
+                        0
+                    ]
+
+                    deb = data[indice]["amount"]
+
+        except Exception as e:
+            _LOGGER.error(e)
+
+        return {"balance_data": data}

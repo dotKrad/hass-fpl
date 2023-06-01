@@ -2,7 +2,6 @@
 from datetime import timedelta, datetime
 from homeassistant.components.sensor import (
     STATE_CLASS_TOTAL_INCREASING,
-    STATE_CLASS_TOTAL,
     DEVICE_CLASS_ENERGY,
 )
 from .fplEntity import FplEnergyEntity, FplMoneyEntity
@@ -19,9 +18,9 @@ class FplDailyUsageSensor(FplMoneyEntity):
         data = self.getData("daily_usage")
 
         if data is not None and len(data) > 0 and "cost" in data[-1].keys():
-            return data[-1]["cost"]
+            self._attr_native_value = data[-1]["cost"]
 
-        return None
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
@@ -48,26 +47,30 @@ class FplDailyUsageKWHSensor(FplEnergyEntity):
         data = self.getData("daily_usage")
 
         if data is not None and len(data) > 0 and "usage" in data[-1].keys():
-            return data[-1]["usage"]
+            self._attr_native_value = data[-1]["usage"]
 
-        return None
+        return self._attr_native_value
 
     @property
     def last_reset(self) -> datetime | None:
         data = self.getData("daily_usage")
-        date = data[-1]["readTime"]
-        last_reset = date - timedelta(days=1)
-        return last_reset
+        if data is not None and len(data) > 0 and "usage" in data[-1].keys():
+            date = data[-1]["readTime"]
+            _attr_last_reset = date - timedelta(days=1)
+        else:
+            _attr_last_reset = None
+
+        return _attr_last_reset
 
     def customAttributes(self):
         """Return the state attributes."""
-        data = self.getData("daily_usage")
-        date = data[-1]["readTime"]
-        last_reset = date - timedelta(days=1)
+        # data = self.getData("daily_usage")
+        # date = data[-1]["readTime"]
+        # last_reset = date - timedelta(days=1)
 
         attributes = {}
         # attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
-        attributes["date"] = date
+        # attributes["date"] = date
         # attributes["last_reset"] = last_reset
         return attributes
 
@@ -83,19 +86,22 @@ class FplDailyReceivedKWHSensor(FplEnergyEntity):
     @property
     def native_value(self):
         data = self.getData("daily_usage")
+
         if data is not None and len(data) > 0 and "netReceivedKwh" in data[-1].keys():
-            return data[-1]["netReceivedKwh"]
-        return 0
+            self._attr_native_value = data[-1]["netReceivedKwh"]
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
         data = self.getData("daily_usage")
-        date = data[-1]["readTime"]
-        last_reset = date - timedelta(days=1)
-
         attributes = {}
-        attributes["date"] = date
-        # attributes["last_reset"] = last_reset
+
+        if data is not None and len(data) > 0 and "readTime" in data[-1].keys():
+            date = data[-1]["readTime"]
+            # last_reset = date - timedelta(days=1)
+            attributes["date"] = date
+            # attributes["last_reset"] = last_reset
         return attributes
 
 
@@ -110,17 +116,19 @@ class FplDailyDeliveredKWHSensor(FplEnergyEntity):
     @property
     def native_value(self):
         data = self.getData("daily_usage")
+
         if data is not None and len(data) > 0 and "netDeliveredKwh" in data[-1].keys():
-            return data[-1]["netDeliveredKwh"]
-        return 0
+            self._attr_native_value = data[-1]["netDeliveredKwh"]
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
         data = self.getData("daily_usage")
-        date = data[-1]["readTime"]
-        last_reset = date - timedelta(days=1)
-
         attributes = {}
-        attributes["date"] = date
-        # attributes["last_reset"] = last_reset
+        if data is not None and len(data) > 0 and "readTime" in data[-1].keys():
+            date = data[-1]["readTime"]
+            # last_reset = date - timedelta(days=1)
+            attributes["date"] = date
+            # attributes["last_reset"] = last_reset
         return attributes

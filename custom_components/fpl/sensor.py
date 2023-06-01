@@ -33,6 +33,8 @@ from .sensor_DailyUsageSensor import (
     FplDailyReceivedKWHSensor,
 )
 
+from .sensor_BalanceSensor import BalanceSensor
+
 from .const import CONF_ACCOUNTS, CONF_TERRITORY, DOMAIN, FPL_MAINREGION, FPL_NORTHWEST
 
 ALL_REGIONS = [FPL_MAINREGION, FPL_NORTHWEST]
@@ -83,6 +85,9 @@ registerSensor(NetReceivedKWHSensor, ONLY_MAINREGION)
 registerSensor(NetDeliveredKWHSensor, ONLY_MAINREGION)
 registerSensor(FplDailyReceivedKWHSensor, ONLY_MAINREGION)
 registerSensor(FplDailyDeliveredKWHSensor, ONLY_MAINREGION)
+
+# Balance sensors
+registerSensor(BalanceSensor, ONLY_MAINREGION)
 
 
 async def async_setup_entry(hass, entry, async_add_devices):

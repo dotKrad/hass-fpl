@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from homeassistant.components.sensor import (
     STATE_CLASS_TOTAL_INCREASING,
     STATE_CLASS_TOTAL,
+    DEVICE_CLASS_ENERGY,
 )
 from .fplEntity import FplEnergyEntity
 
@@ -15,7 +16,12 @@ class ProjectedKWHSensor(FplEnergyEntity):
 
     @property
     def native_value(self):
-        return self.getData("projectedKWH")
+        projectedKWH = self.getData("projectedKWH")
+
+        if projectedKWH is not None:
+            self._attr_native_value = projectedKWH
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
@@ -32,7 +38,12 @@ class DailyAverageKWHSensor(FplEnergyEntity):
 
     @property
     def native_value(self):
-        return self.getData("dailyAverageKWH")
+        dailyAverageKWH = self.getData("dailyAverageKWH")
+
+        if dailyAverageKWH is not None:
+            self._attr_native_value = dailyAverageKWH
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
@@ -47,22 +58,19 @@ class BillToDateKWHSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Bill To Date KWH")
 
+    _attr_state_class = STATE_CLASS_TOTAL_INCREASING
+    _attr_device_class = DEVICE_CLASS_ENERGY
+
     @property
     def native_value(self):
-        return self.getData("billToDateKWH")
+        billToDateKWH = self.getData("billToDateKWH")
 
-    def customAttributes(self):
-        """Return the state attributes."""
+        if billToDateKWH is not None:
+            self._attr_native_value = billToDateKWH
 
-        # data = self.getData("daily_usage")
-        # date = data[-1]["readTime"]
-        asOfDays = self.getData("as_of_days")
-        last_reset = date.today() - timedelta(days=asOfDays)
+        print(self.state_class)
 
-        attributes = {}
-        # attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
-        # attributes["last_reset"] = last_reset
-        return attributes
+        return self._attr_native_value
 
 
 class NetReceivedKWHSensor(FplEnergyEntity):
@@ -73,7 +81,12 @@ class NetReceivedKWHSensor(FplEnergyEntity):
 
     @property
     def native_value(self):
-        return self.getData("recMtrReading")
+        recMtrReading = self.getData("recMtrReading")
+
+        if recMtrReading is not None:
+            self._attr_native_value = recMtrReading
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
@@ -90,7 +103,12 @@ class NetDeliveredKWHSensor(FplEnergyEntity):
 
     @property
     def native_value(self):
-        return self.getData("delMtrReading")
+        delMtrReading = self.getData("delMtrReading")
+
+        if delMtrReading is not None:
+            self._attr_native_value = delMtrReading
+
+        return self._attr_native_value
 
     def customAttributes(self):
         """Return the state attributes."""
