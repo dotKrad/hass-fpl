@@ -52,7 +52,7 @@ class FplEntity(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = {
-            #            "attribution": ATTRIBUTION,
+            "attribution": ATTRIBUTION,
             # "integration": "FPL",
         }
         attributes.update(self.customAttributes())

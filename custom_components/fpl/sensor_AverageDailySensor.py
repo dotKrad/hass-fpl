@@ -1,5 +1,4 @@
 """Average daily sensors"""
-from homeassistant.components.sensor import STATE_CLASS_TOTAL
 from .fplEntity import FplMoneyEntity
 
 
@@ -11,10 +10,9 @@ class DailyAverageSensor(FplMoneyEntity):
 
     @property
     def native_value(self):
-        budget = self.getData("budget_bill")
         daily_avg = self.getData("daily_avg")
 
-        if budget and daily_avg is not None:
+        if daily_avg is not None:
             self._attr_native_value = daily_avg
 
         return self._attr_native_value

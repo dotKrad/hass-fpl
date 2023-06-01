@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from homeassistant.components.sensor import (
     STATE_CLASS_TOTAL_INCREASING,
     STATE_CLASS_TOTAL,
+    DEVICE_CLASS_ENERGY,
 )
 from .fplEntity import FplEnergyEntity
 
@@ -57,6 +58,9 @@ class BillToDateKWHSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Bill To Date KWH")
 
+    _attr_state_class = STATE_CLASS_TOTAL_INCREASING
+    _attr_device_class = DEVICE_CLASS_ENERGY
+
     @property
     def native_value(self):
         billToDateKWH = self.getData("billToDateKWH")
@@ -64,20 +68,9 @@ class BillToDateKWHSensor(FplEnergyEntity):
         if billToDateKWH is not None:
             self._attr_native_value = billToDateKWH
 
+        print(self.state_class)
+
         return self._attr_native_value
-
-    def customAttributes(self):
-        """Return the state attributes."""
-
-        # data = self.getData("daily_usage")
-        # date = data[-1]["readTime"]
-        asOfDays = self.getData("as_of_days")
-        last_reset = date.today() - timedelta(days=asOfDays)
-
-        attributes = {}
-        # attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
-        # attributes["last_reset"] = last_reset
-        return attributes
 
 
 class NetReceivedKWHSensor(FplEnergyEntity):
