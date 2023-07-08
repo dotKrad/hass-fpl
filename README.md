@@ -19,7 +19,7 @@ Platform | Description
    - In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "FPL"
 
 # Compatible with HACS
-
+Please follow directions [here](https://hacs.xyz/docs/faq/custom_repositories/), and use https://github.com/dotKrad/hass-fpl as the repository URL.
 ## Contributions are welcome!
 
 If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
