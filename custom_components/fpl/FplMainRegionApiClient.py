@@ -354,7 +354,7 @@ class FplMainRegionApiClient:
                         data["daily_usage"] = dailyUsage
 
                     currentUsage = r["CurrentUsage"]
-                    data["projectedKWH"] = currentUsage["projectedKWH"]
+                    data["projectedKWH"] = int(currentUsage["projectedKWH"] or 0)
                     data["dailyAverageKWH"] = float(currentUsage["dailyAverageKWH"])
                     data["billToDateKWH"] = float(currentUsage["billToDateKWH"])
                     data["recMtrReading"] = int(currentUsage["recMtrReading"] or 0)
@@ -395,7 +395,7 @@ class FplMainRegionApiClient:
 
     async def __getDataFromBalance(self, account) -> dict:
         """get data from appliance usage"""
-        _LOGGER.info("Getting appliance usage data")
+        _LOGGER.info("Getting balance data")
 
         data = {}
 
