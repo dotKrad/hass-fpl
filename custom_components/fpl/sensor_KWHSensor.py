@@ -79,6 +79,9 @@ class NetReceivedKWHSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Received Meter Reading KWH")
 
+    _attr_state_class = STATE_CLASS_TOTAL_INCREASING
+    _attr_device_class = DEVICE_CLASS_ENERGY
+    
     @property
     def native_value(self):
         recMtrReading = self.getData("recMtrReading")
@@ -101,6 +104,9 @@ class NetDeliveredKWHSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Delivered Meter Reading KWH")
 
+    _attr_state_class = STATE_CLASS_TOTAL_INCREASING
+    _attr_device_class = DEVICE_CLASS_ENERGY
+    
     @property
     def native_value(self):
         delMtrReading = self.getData("delMtrReading")
