@@ -1,6 +1,6 @@
 """dates sensors"""
 import datetime
-from homeassistant.components.sensor import STATE_CLASS_MEASUREMENT
+from homeassistant.components.sensor import SensorStateClass
 from .fplEntity import FplDateEntity, FplDayEntity
 
 
@@ -42,7 +42,7 @@ class ServiceDaysSensor(FplDayEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Service Days")
 
-    _attr_state_class = STATE_CLASS_MEASUREMENT
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
     def native_value(self):

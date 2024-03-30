@@ -1,15 +1,13 @@
 """Projected bill sensors"""
-from homeassistant.components.sensor import (
-    # STATE_CLASS_TOTAL_INCREASING,
-    STATE_CLASS_TOTAL,
-)
+# from homeassistant.components.sensor import SensorStateClass.TOTAL
+
 from .fplEntity import FplMoneyEntity
 
 
 class FplProjectedBillSensor(FplMoneyEntity):
     """Projected bill sensor"""
 
-    # _attr_state_class = STATE_CLASS_TOTAL
+    # _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Projected Bill")
@@ -40,7 +38,7 @@ class FplProjectedBillSensor(FplMoneyEntity):
 class DeferedAmountSensor(FplMoneyEntity):
     """Defered amount sensor"""
 
-    # _attr_state_class = STATE_CLASS_TOTAL
+    # _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Defered Amount")
@@ -59,7 +57,7 @@ class DeferedAmountSensor(FplMoneyEntity):
 class ProjectedBudgetBillSensor(FplMoneyEntity):
     """projected budget bill sensor"""
 
-    # _attr_state_class = STATE_CLASS_TOTAL
+    # _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Projected Budget Bill")
@@ -77,7 +75,7 @@ class ProjectedBudgetBillSensor(FplMoneyEntity):
 class ProjectedActualBillSensor(FplMoneyEntity):
     """projeted actual bill sensor"""
 
-    # _attr_state_class = STATE_CLASS_TOTAL
+    # _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Projected Actual Bill")
@@ -95,7 +93,7 @@ class ProjectedActualBillSensor(FplMoneyEntity):
 class BillToDateSensor(FplMoneyEntity):
     """projeted actual bill sensor"""
 
-    # _attr_state_class = STATE_CLASS_TOTAL
+    # _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Bill To Date")

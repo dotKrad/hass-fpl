@@ -2,14 +2,12 @@
 
 from datetime import datetime, timedelta
 
-from homeassistant.components.sensor import SensorEntity, STATE_CLASS_MEASUREMENT
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from homeassistant.const import (
     CURRENCY_DOLLAR,
-    DEVICE_CLASS_ENERGY,
-    ENERGY_KILO_WATT_HOUR,
-    DEVICE_CLASS_MONETARY,
+    UnitOfEnergy,
 )
 from .const import DOMAIN, VERSION, ATTRIBUTION
 
@@ -70,8 +68,8 @@ class FplEntity(CoordinatorEntity, SensorEntity):
 class FplEnergyEntity(FplEntity):
     """Represents a energy sensor"""
 
-    _attr_native_unit_of_measurement = ENERGY_KILO_WATT_HOUR
-    # _attr_device_class = DEVICE_CLASS_ENERGY
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    # _attr_device_class = SensorDeviceClass.ENERGY
     _attr_icon = "mdi:flash"
 
     @property
@@ -87,7 +85,7 @@ class FplMoneyEntity(FplEntity):
     """Represents a money sensor"""
 
     _attr_native_unit_of_measurement = CURRENCY_DOLLAR
-    _attr_device_class = DEVICE_CLASS_MONETARY
+    _attr_device_class = SensorDeviceClass.MONETARY
     _attr_icon = "mdi:currency-usd"
 
 
