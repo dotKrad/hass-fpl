@@ -1,8 +1,8 @@
 """Daily Usage Sensors"""
 from datetime import timedelta, datetime
 from homeassistant.components.sensor import (
-    STATE_CLASS_TOTAL_INCREASING,
-    DEVICE_CLASS_ENERGY,
+    SensorDeviceClass,
+    SensorStateClass,
 )
 from .fplEntity import FplEnergyEntity, FplMoneyEntity
 
@@ -26,7 +26,7 @@ class FplDailyUsageSensor(FplMoneyEntity):
         """Return the state attributes."""
         data = self.getData("daily_usage")
         attributes = {}
-        # attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        # attributes["state_class"] = SensorStateClass.TOTAL_INCREASING
         if data is not None and len(data) > 0 and "readTime" in data[-1].keys():
             attributes["date"] = data[-1]["readTime"]
 
@@ -39,8 +39,8 @@ class FplDailyUsageKWHSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Usage KWH")
 
-    _attr_state_class = STATE_CLASS_TOTAL_INCREASING
-    _attr_device_class = DEVICE_CLASS_ENERGY
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_device_class = SensorDeviceClass.ENERGY
 
     @property
     def native_value(self):
@@ -69,7 +69,7 @@ class FplDailyUsageKWHSensor(FplEnergyEntity):
         # last_reset = date - timedelta(days=1)
 
         attributes = {}
-        # attributes["state_class"] = STATE_CLASS_TOTAL_INCREASING
+        # attributes["state_class"] = SensorStateClass.TOTAL_INCREASING
         # attributes["date"] = date
         # attributes["last_reset"] = last_reset
         return attributes
@@ -81,7 +81,7 @@ class FplDailyReceivedKWHSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Received KWH")
 
-    # _attr_state_class = STATE_CLASS_TOTAL_INCREASING
+    # _attr_state_class = SensorStateClass.TOTAL_INCREASING
 
     @property
     def native_value(self):
@@ -108,7 +108,7 @@ class FplDailyReceivedKWHSensor(FplEnergyEntity):
 class FplDailyDeliveredKWHSensor(FplEnergyEntity):
     """daily delivered Kwh sensor"""
 
-    # _attr_state_class = STATE_CLASS_TOTAL_INCREASING
+    # _attr_state_class = SensorStateClass.TOTAL_INCREASING
 
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Delivered KWH")

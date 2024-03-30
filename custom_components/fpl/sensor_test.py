@@ -1,8 +1,8 @@
 """Test Sensors"""
 from datetime import timedelta, datetime
 from homeassistant.components.sensor import (
-    STATE_CLASS_TOTAL_INCREASING,
-    DEVICE_CLASS_ENERGY,
+    SensorDeviceClass,
+    SensorStateClass,
 )
 from homeassistant.core import callback
 from homeassistant.const import STATE_UNKNOWN
@@ -15,8 +15,8 @@ class TestSensor(FplEnergyEntity):
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Test Sensor")
 
-    _attr_state_class = STATE_CLASS_TOTAL_INCREASING
-    _attr_device_class = DEVICE_CLASS_ENERGY
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_device_class = SensorDeviceClass.ENERGY
 
     @property
     def native_value(self):
