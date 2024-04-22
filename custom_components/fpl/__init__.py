@@ -8,6 +8,7 @@ from datetime import timedelta
 from homeassistant.core import Config, HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.util import Throttle
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 
@@ -15,6 +16,7 @@ from .fplapi import FplApi
 from .const import (
     DOMAIN,
     DOMAIN_DATA,
+    NAME,
     PLATFORMS,
     STARTUP_MESSAGE,
 )
@@ -25,6 +27,14 @@ MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
 
 _LOGGER = logging.getLogger(__package__)
 
+def get_device_info():
+    return DeviceInfo(
+        identifiers={
+            ("id", NAME),
+        },
+        name=NAME,
+        manufacturer=NAME,
+    )
 
 class FplData:
     """This class handle communication and stores the data."""

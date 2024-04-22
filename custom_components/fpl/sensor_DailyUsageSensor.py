@@ -157,3 +157,40 @@ class FplDailyDeliveredKWHSensor(FplEnergyEntity):
             attributes["date"] = date
             # attributes["last_reset"] = last_reset
         return attributes
+
+#jf changes below
+class FplDailyReceivedReading(FplEnergyEntity):
+    """daily received reading"""
+
+    _attr_state_class = STATE_CLASS_TOTAL_INCREASING
+    _attr_device_class = DEVICE_CLASS_ENERGY
+
+    def __init__(self, coordinator, config, account):
+        super().__init__(coordinator, config, account, "Daily Received reading")
+
+    @property
+    def native_value(self):
+        data = self.getData("daily_usage")
+
+        if data is not None and len(data) > 0 and "netReceivedReading" in data[-1].keys():
+            self._attr_native_value = data[-1]["netReceivedReading"]
+
+        return self._attr_native_value
+        
+class FplDailyDeliveredReading(FplEnergyEntity):
+    """daily delivered reading"""
+
+    _attr_state_class = STATE_CLASS_TOTAL_INCREASING
+    _attr_device_class = DEVICE_CLASS_ENERGY
+
+    def __init__(self, coordinator, config, account):
+        super().__init__(coordinator, config, account, "Daily Delivered reading")
+
+    @property
+    def native_value(self):
+        data = self.getData("daily_usage")
+
+        if data is not None and len(data) > 0 and "netDeliveredReading" in data[-1].keys():
+            self._attr_native_value = data[-1]["netDeliveredReading"]
+
+        return self._attr_native_value
