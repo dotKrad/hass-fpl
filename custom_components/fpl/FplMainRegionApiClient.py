@@ -468,16 +468,20 @@ class FplMainRegionApiClient:
                     URL_APPLIANCE_USAGE.format(account=account), json=JSON
                 )
                 if response.status == 200:
-                    electric = (await response.json())["data"]["electric"]
+                    data = (await response.json())["data"]
+                    if "electric" in data:
+                        electric = data["electric"]
 
-                    full = 100
-                    for e in electric:
-                        rr = round(float(e["percentageDollar"]))
-                        if rr < full:
-                            full = full - rr
-                        else:
-                            rr = full
-                        data[e["category"].replace(" ", "_")] = rr
+                        full = 100
+                        for e in electric:
+                            rr = round(float(e["percentageDollar"]))
+                            if rr < full:
+                                full = full - rr
+                            else:
+                                rr = full
+                            data[e["category"].replace(" ", "_")] = rr
+                    else:
+                        _LOGGER.info("appliance usage data does not exist")
         except Exception as e:
             _LOGGER.error(e)
 
