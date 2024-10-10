@@ -39,7 +39,7 @@ class FplEntity(CoordinatorEntity, SensorEntity):
     def device_info(self):
         return {
             "identifiers": {(DOMAIN, self.account)},
-            "name": f"FPL Account {self.account}",
+            "name": f"FPL {self.account}",
             "model": VERSION,
             "manufacturer": "Florida Power & Light",
         }
