@@ -42,6 +42,7 @@ class FplEntity(CoordinatorEntity, SensorEntity):
             "name": f"FPL Account {self.account}",
             "model": VERSION,
             "manufacturer": "Florida Power & Light",
+            "configuration_url":"https://www.fpl.com/my-account/residential-dashboard.html"
         }
 
     def customAttributes(self) -> dict:
