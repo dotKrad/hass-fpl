@@ -186,7 +186,7 @@ class FplMainRegionApiClient:
         )
         data.update(energy_service_data)
 
-        appliance_usage_data = await self.get_appliance_usage(account, premise)
+        appliance_usage_data = await self.get_appliance_usage(account, premise, currentBillDate)
         data.update(appliance_usage_data)
 
         # Gets the account balance and past due status.
@@ -421,44 +421,48 @@ class FplMainRegionApiClient:
 
         return data
 
-    async def get_appliance_usage(self, account, premise) -> dict:
+    async def get_appliance_usage(self, account, premise, lastBilledDate) -> dict:
         """get data from appliance usage"""
         _LOGGER.info("Getting appliance usage data")
-
+    
         URL_APPLIANCE_USAGE = (
             API_HOST
-            + "/cs/customer/v1/energyanalyzer/resources/{account}/getDisaggResp"
+            + "/cs/customer/v1/energyanalyzer/resources/mobile/account/premise?mediaChannel=IOS"
         )
-
-        JSON = {"premiseId": premise, "accountNumber": account}
+    
+        # Payload and endpoint confirmed via MITM proxy capture April 2026
+        lastBilledDate = lastBilledDate.strftime("%m%d%Y") 
+        JSON = {
+            "premiseId": premise,
+            "accountNumber": account,
+            "lastBilledDate": lastBilledDate,
+        }
         data = {}
-
+    
         try:
             headers = {}
             if hasattr(self, "jwt_token") and self.jwt_token:
-                headers["jwttoken"] = self.jwt_token
+                # This endpoint requires Bearer token, not jwttoken header
+                headers["Authorization"] = f"Bearer {self.jwt_token}"
             async with async_timeout.timeout(TIMEOUT):
                 response = await self.session.post(
-                    URL_APPLIANCE_USAGE.format(account=account),
+                    URL_APPLIANCE_USAGE,
                     json=JSON,
                     headers=headers,
                 )
                 if response.status == 200:
                     response_json = await response.json()
                     json_data = response_json["data"]
-
-                    bill_periods = json_data["billPeriods"]
+    
+                    bill_periods = json_data.get("billPeriods")
                     if bill_periods:
-                        for bill_period in bill_periods:
-                            # We only care about the latest bill period.
-                            # It appears that 1 is the latest, with 2 being two months ago, etc.
-                            if int(bill_period["billPeriod"]) == 1:
-                                data["appliance_usage"] = bill_period
-                                break
-
+                        # billPeriod "1" is the most recent
+                        if int(bill_periods["billPeriod"]) == 1:
+                            data["appliance_usage"] = bill_periods
+    
         except Exception as e:
             _LOGGER.error(e)
-
+    
         return data
 
     async def get_account_details(self, account_number: str) -> dict:
@@ -483,25 +487,27 @@ class FplMainRegionApiClient:
                 if response.status == 200:
                     for account in json_data["data"]["AccountList"]["data"]:
                         if account["accountNumber"] == account_number:
-                            balances = account["balancesDrilldown"]["data"]
-
-                            if len(balances) == 0:
-                                continue
-
-                            balance = balances[0]["amount"]
-
-                            balance = balance.replace("$", "")
-                            balance = balance.replace(",", "")
-                            balance = float(balance)
-
-                            data["balance"] = balance
-
-                            # Due Date is provided like this `Dec 22, 2025` we need to convert this to a date.
-                            balance_due_date = balances[0]["dueDate"]
-                            balance_due_date = datetime.strptime(
-                                balance_due_date, "%b %d, %Y"
-                            ).date()
-                            data["balance_due_date"] = balance_due_date
+                            # balancesDrilldown no longer exists in the API response.
+                            # Balance is now a formatted string directly on the account object.
+                            raw_balance = account.get("balance", "$0.00")
+                            raw_balance = raw_balance.replace("$", "").replace(",", "")
+                            try:
+                                data["balance"] = float(raw_balance)
+                            except (ValueError, TypeError):
+                                data["balance"] = 0.0
+                    
+                            # dueDateVal is now a string like "Your account is paid in full."
+                            # or "Due Jan 15, 2026" — parse it if it contains a date.
+                            due_date_val = account.get("dueDateVal", "")
+                            try:
+                                # Strip common prefixes FPL uses before the date
+                                for prefix in ("Due ", "Payment due ", "Past due "):
+                                    due_date_val = due_date_val.replace(prefix, "")
+                                data["balance_due_date"] = datetime.strptime(
+                                    due_date_val.strip(), "%b %d, %Y"
+                                ).date()
+                            except (ValueError, TypeError):
+                                data["balance_due_date"] = None
 
                 return data
 
