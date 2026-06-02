@@ -384,7 +384,7 @@ class FplMainRegionApiClient:
             + f"/cs/customer/v1/energydashboard/resources/energy-usage/account/{account}/mobile-hourly-usage"
         )
 
-        JSON = {"premiseNumber": premise, "startDate": date.strftime("%m-%d-%Y")}
+        JSON = {"premiseNumber": premise, "startDate": date.strftime("%m-%d-%Y"), "endDate": date.strftime("%m-%d-%Y")}
 
         data = []
         try:

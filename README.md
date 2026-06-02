@@ -94,7 +94,7 @@ This repo uses `uv` for Python package dependencies.
 2. Run `uv venv`
 3. Run `uv sync --dev`
 4. Run `./scripts/develop`. This will start Home Assistant locally.
-5. Access HAOS `http://localhost:8321`
+5. Access HAOS `http://localhost:8123`
 6. If asked, setup Home Assistant for the first time.
 7. Go to Settings > Device & Services > Add Integrations, and create a new FPL integration.
 8. Make changes to the source code and restart HAOS to take effect.
