@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/dotKrad/hass-fpl/compare/v1.0.1...v1.0.2) (2026-06-17)
+
+
+### Bug Fixes
+
+* handle HourlyUsage list response from mobile-hourly-usage ([433a6a6](https://github.com/dotKrad/hass-fpl/commit/433a6a6822fa93b52d2b58b28ee6940e4996a6de))
+
 ## [1.0.1](https://github.com/dotKrad/hass-fpl/compare/v1.0.0...v1.0.1) (2026-06-17)
 
 
