@@ -84,6 +84,16 @@ See estimated usage and cost by appliance category:
 3. Search for **"FPL"**
 4. Enter your FPL account credentials
 
+### Energy Dashboard
+
+Hourly data for the Energy Dashboard comes from **external statistics**, not the Hourly Usage sensors (those stay Unknown and are for debugging only).
+
+1. Go to **Settings** → **Dashboards** → **Energy** → **Configuration**.
+2. Under grid consumption, pick the **statistics** entries (chart icon), not the sensor entities (lightning icon):
+   - `FPL <account> Hourly Usage` → statistic ID `fpl:<account>_hourly_usage`
+   - `FPL <account> Hourly Cost` → statistic ID `fpl:<account>_hourly_cost`
+3. Replace `<account>` with your FPL account number. On first setup, wait a few minutes for the integration to backfill hourly data before expecting charts to populate.
+
 ---
 
 ## Development
