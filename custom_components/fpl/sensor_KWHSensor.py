@@ -11,7 +11,7 @@ class ProjectedKWHSensor(FplEnergyEntity):
     # Use MEASUREMENT or TOTAL (without _INCREASING) as needed.
     # For now, let's assume it's a measurement of an estimation.
     _attr_device_class = SensorDeviceClass.ENERGY
-    # _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Projected KWH")
@@ -31,7 +31,7 @@ class DailyAverageKWHSensor(FplEnergyEntity):
 
     # Averages are often treated as measurements too, not cumulative totals.
     _attr_device_class = SensorDeviceClass.ENERGY
-    # _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator, config, account):
         super().__init__(coordinator, config, account, "Daily Average KWH")
