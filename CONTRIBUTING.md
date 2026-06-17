@@ -18,6 +18,21 @@ Pull requests are the best way to propose changes to the codebase.
 3. Make sure your code lints (using black).
 4. Issue that pull request!
 
+## Releases
+
+This project uses [Release Please](https://github.com/googleapis/release-please) to automate versioning and GitHub releases for HACS update notifications.
+
+1. Use [Conventional Commits](https://www.conventionalcommits.org/) in **squash merge** PR titles:
+   - `fix: ...` → patch release (e.g. 1.0.0 → 1.0.1)
+   - `feat: ...` → minor release (e.g. 1.0.0 → 1.1.0)
+   - `feat!: ...` or `BREAKING CHANGE:` in the body → major release
+2. After merges to `master`, Release Please opens a **Release PR** that bumps `custom_components/fpl/manifest.json` and updates `CHANGELOG.md`.
+3. **Merge the Release PR** — Release Please creates the GitHub release and tag (e.g. `v1.1.0`). HACS detects the new version and notifies users.
+
+To force a specific version (e.g. first release after adopting Release Please), add `Release-As: 1.1.0` to a commit message body.
+
+Repository setting required: **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests**.
+
 ## Any contributions you make will be under the MIT Software License
 
 In short, when you submit code changes, your submissions are understood to be under the same [MIT License](http://choosealicense.com/licenses/mit/) that covers the project. Feel free to contact the maintainers if that's a concern.
