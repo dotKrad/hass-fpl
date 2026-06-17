@@ -103,7 +103,11 @@ class FplApi:
 
             data[CONF_ACCOUNTS] = accounts
             for account in accounts:
-                data[account] = await self.apiClient.update(account)
+                try:
+                    data[account] = await self.apiClient.update(account)
+                except Exception as exception:
+                    _LOGGER.error("Error updating account %s: %s", account, exception)
+                    data[account] = {}
 
             await self.apiClient.logout()
         return data

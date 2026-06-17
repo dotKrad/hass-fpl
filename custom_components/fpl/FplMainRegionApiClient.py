@@ -124,20 +124,31 @@ class FplMainRegionApiClient:
         Returns array with active account numbers
         """
         result = []
-        URL = API_HOST + "/cs/customer/v1/resources/header"
+        URL = API_HOST + "/cs/customer/v1/resources/account"
         headers = {}
         if hasattr(self, "jwt_token") and self.jwt_token:
             headers["jwttoken"] = self.jwt_token
 
-        async with async_timeout.timeout(TIMEOUT):
-            response = await self.session.get(URL, headers=headers)
+        start = 1
+        page_size = 10
 
-        json_data = await response.json()
-        accounts = json_data["data"]["accounts"]["data"]["data"]
+        while True:
+            params = {"sortBy": "status", "count": str(page_size), "start": str(start)}
+            async with async_timeout.timeout(TIMEOUT):
+                response = await self.session.get(URL, headers=headers, params=params)
 
-        for account in accounts:
-            if account["statusCategory"] == STATUS_CATEGORY_OPEN:
-                result.append(account["accountNumber"])
+            json_data = await response.json()
+            if response.status != 200:
+                break
+
+            for account in json_data.get("data", []):
+                if account.get("statusCategory") == STATUS_CATEGORY_OPEN:
+                    result.append(account["accountNumber"])
+
+            if not json_data.get("hasMore"):
+                break
+
+            start += json_data.get("count", page_size)
 
         return result
 
@@ -159,70 +170,80 @@ class FplMainRegionApiClient:
             API_HOST
             + "/cs/customer/v1/accountservices/resources/account/{account}/select?view=account-lander"
         )
-        headers = {}
-        if hasattr(self, "jwt_token") and self.jwt_token:
-            headers["jwttoken"] = self.jwt_token
-        async with async_timeout.timeout(TIMEOUT):
-            response = await self.session.get(
-                URL_RESOURCES_ACCOUNT.format(account=account), headers=headers
-            )
-        account_data = (await response.json())["data"]
+        try:
+            headers = {}
+            if hasattr(self, "jwt_token") and self.jwt_token:
+                headers["jwttoken"] = self.jwt_token
+            async with async_timeout.timeout(TIMEOUT):
+                response = await self.session.get(
+                    URL_RESOURCES_ACCOUNT.format(account=account), headers=headers
+                )
+            account_data = (await response.json()).get("data")
+            if account_data:
+                premise_number = account_data.get("premiseNumber")
+                premise = None
+                if premise_number:
+                    premise = str(premise_number).zfill(9)
+                    data["premise"] = premise
 
-        premise = account_data.get("premiseNumber").zfill(9)
-        data["premise"] = premise
+                if account_data.get("meterSerialNo") is not None:
+                    data["meterSerialNo"] = account_data["meterSerialNo"]
+                meterno = account_data.get("meterNo")
 
-        data["meterSerialNo"] = account_data["meterSerialNo"]
-        # data["meterNo"] = account_data["meterNo"]
-        meterno = account_data["meterNo"]
+                current_bill_date_raw = account_data.get("currentBillDate")
+                next_bill_date_raw = account_data.get("nextBillDate")
+                if current_bill_date_raw and next_bill_date_raw:
+                    currentBillDate = datetime.strptime(
+                        current_bill_date_raw.replace("-", "").split("T")[0], "%Y%m%d"
+                    ).date()
 
-        # currentBillDate
-        currentBillDate = datetime.strptime(
-            account_data["currentBillDate"].replace("-", "").split("T")[0], "%Y%m%d"
-        ).date()
+                    nextBillDate = datetime.strptime(
+                        next_bill_date_raw.replace("-", "").split("T")[0], "%Y%m%d"
+                    ).date()
 
-        # nextBillDate
-        nextBillDate = datetime.strptime(
-            account_data["nextBillDate"].replace("-", "").split("T")[0], "%Y%m%d"
-        ).date()
+                    data["current_bill_date"] = str(currentBillDate)
+                    data["next_bill_date"] = str(nextBillDate)
 
-        data["current_bill_date"] = str(currentBillDate)
-        data["next_bill_date"] = str(nextBillDate)
+                    today = datetime.now().date()
 
-        today = datetime.now().date()
+                    data["service_days"] = (nextBillDate - currentBillDate).days
+                    data["as_of_days"] = (today - currentBillDate).days
+                    data["remaining_days"] = (nextBillDate - today).days
 
-        data["service_days"] = (nextBillDate - currentBillDate).days
-        data["as_of_days"] = (today - currentBillDate).days
-        data["remaining_days"] = (nextBillDate - today).days
+                    programsData = account_data.get("programs", {}).get("data", [])
 
-        programsData = account_data["programs"]["data"]
+                    programs = dict()
+                    _LOGGER.info("Getting Programs")
+                    for program in programsData:
+                        if "enrollmentStatus" in program.keys():
+                            key = program["name"]
+                            programs[key] = program["enrollmentStatus"] == ENROLLED
 
-        programs = dict()
-        _LOGGER.info("Getting Programs")
-        for program in programsData:
-            if "enrollmentStatus" in program.keys():
-                key = program["name"]
-                programs[key] = program["enrollmentStatus"] == ENROLLED
+                    def hasProgram(programName) -> bool:
+                        return programName in programs and programs[programName]
 
-        def hasProgram(programName) -> bool:
-            return programName in programs and programs[programName]
+                    # Budget Billing program
+                    if hasProgram("BBL"):
+                        data["budget_bill"] = True
+                        bbl_data = await self.__getBBL_async(account, data)
+                        data.update(bbl_data)
+                    else:
+                        data["budget_bill"] = False
 
-        # Budget Billing program
-        if hasProgram("BBL"):
-            data["budget_bill"] = True
-            bbl_data = await self.__getBBL_async(account, data)
-            data.update(bbl_data)
-        else:
-            data["budget_bill"] = False
+                    if premise and meterno:
+                        energy_service_data = await self.get_energy_usage(
+                            account, premise, currentBillDate, meterno
+                        )
+                        data.update(energy_service_data)
 
-        energy_service_data = await self.get_energy_usage(
-            account, premise, currentBillDate, meterno
-        )
-        data.update(energy_service_data)
+                        appliance_usage_data = await self.get_appliance_usage(
+                            account, premise
+                        )
+                        data.update(appliance_usage_data)
 
-        appliance_usage_data = await self.get_appliance_usage(account, premise)
-        data.update(appliance_usage_data)
+        except Exception as e:
+            _LOGGER.error("Failed to update account %s: %s", account, e)
 
-        # Gets the account balance and past due status.
         data.update(await self.get_account_details(account))
 
         return data
