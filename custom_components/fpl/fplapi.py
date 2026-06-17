@@ -29,12 +29,13 @@ URL_TERRITORY = API_HOST + "/cs/customer/v1/territoryid/public/territory"
 class FplApi:
     """A class for getting energy usage information from Florida Power & Light."""
 
-    def __init__(self, username, password, session, loop):
+    def __init__(self, username, password, session, loop, accounts=None):
         """Initialize the data retrieval. Session should have BasicAuth flag set."""
-        self._username = username
+        self._username = (username or "").strip().lower()
         self._password = password
         self._session = session
         self._loop = loop
+        self._configured_accounts = list(accounts or [])
         self._territory = None
         self.access_token = None
         self.id_token = None
@@ -46,7 +47,7 @@ class FplApi:
         if self._territory is not None:
             return self._territory
 
-        headers = {"userID": f"{self._username}", "channel": "WEB"}
+        headers = {"userID": self._username, "channel": "WEB"}
         async with async_timeout.timeout(TIMEOUT):
             response = await self._session.get(URL_TERRITORY, headers=headers)
 
@@ -76,7 +77,11 @@ class FplApi:
                 )
             else:
                 self.apiClient = FplNorthwestRegionApiClient(
-                    self._username, self._password, self._loop, self._session
+                    self._username,
+                    self._password,
+                    self._loop,
+                    self._session,
+                    configured_accounts=self._configured_accounts,
                 )
 
     async def get_basic_info(self):

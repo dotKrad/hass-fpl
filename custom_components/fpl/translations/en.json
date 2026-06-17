@@ -8,7 +8,8 @@
                 "data": {
                     "name": "Name",
                     "username": "Email",
-                    "password": "Password"
+                    "password": "Password",
+                    "account_number": "Account number (Northwest / Gulf)"
                 }
             }
         },
@@ -17,7 +18,8 @@
             "auth": "Username/Password is wrong.",
             "name_exists": "Configuration already exists.",
             "invalid_username": "Invalid Email",
-            "invalid_password": "Invalid Password"
+            "invalid_password": "Invalid Password",
+            "account_required": "Northwest accounts require your FPL account number when automatic discovery returns no accounts."
         },
         "abort": {
             "single_instance_allowed": "Only a single configuration of Fpl is allowed."
