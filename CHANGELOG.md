@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/dotKrad/hass-fpl/compare/v1.0.3...v1.0.4) (2026-06-17)
+
+
+### Bug Fixes
+
+* multi-account discovery and per-account update failures ([#70](https://github.com/dotKrad/hass-fpl/issues/70)) ([16283ad](https://github.com/dotKrad/hass-fpl/commit/16283ad8d277986d2b615fbe60318a45c02ed7ca))
+
 ## [1.0.3](https://github.com/dotKrad/hass-fpl/compare/v1.0.2...v1.0.3) (2026-06-17)
 
 
