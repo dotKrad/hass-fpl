@@ -24,7 +24,9 @@ class ApplianceCostSensor(FplMoneyEntity):
     @property
     def native_value(self):
         appliance_usage = self.getData("appliance_usage")
-        categories = appliance_usage.get("categories")
+        if not appliance_usage:
+            return self._attr_native_value
+        categories = appliance_usage.get("categories") or []
         for category in categories:
             if category.get("category").lower() == self.CATEGORY_NAME.lower():
                 self._attr_native_value = category.get("cost")
@@ -32,17 +34,17 @@ class ApplianceCostSensor(FplMoneyEntity):
 
     def customAttributes(self):
         """Return the state attributes."""
-        # Add any extra attributes you want to expose here
         appliance_usage = self.getData("appliance_usage")
-        attributes = {
-            "startDate": datetime.strptime(
-                appliance_usage.get("startDate"), "%Y-%m-%d"
-            ).strftime("%Y-%m-%d"),
-            "endDate": datetime.strptime(
-                appliance_usage.get("endDate"), "%Y-%m-%d"
-            ).strftime("%Y-%m-%d"),
+        if not appliance_usage:
+            return {}
+        start_date = appliance_usage.get("startDate")
+        end_date = appliance_usage.get("endDate")
+        if not start_date or not end_date:
+            return {}
+        return {
+            "startDate": datetime.strptime(start_date, "%Y-%m-%d").strftime("%Y-%m-%d"),
+            "endDate": datetime.strptime(end_date, "%Y-%m-%d").strftime("%Y-%m-%d"),
         }
-        return attributes
 
 
 class ApplianceUsageSensor(FplEnergyEntity):
@@ -63,7 +65,9 @@ class ApplianceUsageSensor(FplEnergyEntity):
     @property
     def native_value(self):
         appliance_usage = self.getData("appliance_usage")
-        categories = appliance_usage.get("categories")
+        if not appliance_usage:
+            return self._attr_native_value
+        categories = appliance_usage.get("categories") or []
         for category in categories:
             if category.get("category").lower() == self.CATEGORY_NAME.lower():
                 self._attr_native_value = category.get("kwh")
@@ -71,17 +75,17 @@ class ApplianceUsageSensor(FplEnergyEntity):
 
     def customAttributes(self):
         """Return the state attributes."""
-        # Add any extra attributes you want to expose here
         appliance_usage = self.getData("appliance_usage")
-        attributes = {
-            "startDate": datetime.strptime(
-                appliance_usage.get("startDate"), "%Y-%m-%d"
-            ).strftime("%Y-%m-%d"),
-            "endDate": datetime.strptime(
-                appliance_usage.get("endDate"), "%Y-%m-%d"
-            ).strftime("%Y-%m-%d"),
+        if not appliance_usage:
+            return {}
+        start_date = appliance_usage.get("startDate")
+        end_date = appliance_usage.get("endDate")
+        if not start_date or not end_date:
+            return {}
+        return {
+            "startDate": datetime.strptime(start_date, "%Y-%m-%d").strftime("%Y-%m-%d"),
+            "endDate": datetime.strptime(end_date, "%Y-%m-%d").strftime("%Y-%m-%d"),
         }
-        return attributes
 
 
 class CoolingCostSensor(ApplianceCostSensor):

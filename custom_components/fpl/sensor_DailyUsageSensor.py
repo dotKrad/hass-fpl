@@ -8,6 +8,19 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from .fplEntity import FplEnergyEntity, FplMoneyEntity
 
 
+def _daily_usage_field(data, field):
+    if not data:
+        return None
+    return data.get(field)
+
+
+def _daily_usage_read_time(data):
+    read_time = _daily_usage_field(data, "readTime")
+    if read_time is None:
+        return None
+    return read_time - timedelta(days=1)
+
+
 class FplDailyUsageSensor(FplMoneyEntity):
     """Daily Usage Cost Sensor (monetary)"""
 
@@ -22,25 +35,23 @@ class FplDailyUsageSensor(FplMoneyEntity):
     @property
     def native_value(self):
         data = self.getData("DailyUsage")
-        self._attr_native_value = data["billingCharge"]
+        billing_charge = _daily_usage_field(data, "billingCharge")
+        if billing_charge is not None:
+            self._attr_native_value = billing_charge
         return self._attr_native_value
 
     @property
-    def last_reset(self) -> datetime:
+    def last_reset(self) -> datetime | None:
         data = self.getData("DailyUsage")
-        # Given that the readTime happens at midnight, we can use the previous day's readTime as the last reset.
-        # The assumption here is that it is always at midnight.
-        # But we can always get the previous day's readTime if this assumption proves to be incorrect.
-        return data["readTime"] - timedelta(days=1)
+        return _daily_usage_read_time(data)
 
     def customAttributes(self):
         """Return the state attributes."""
         data = self.getData("DailyUsage")
-        attributes = {
-            "date": data["readTime"].strftime("%Y-%m-%d"),
-        }
-
-        return attributes
+        read_time = _daily_usage_field(data, "readTime")
+        if read_time is None:
+            return {}
+        return {"date": read_time.strftime("%Y-%m-%d")}
 
 
 class FplDailyUsageKWHSensor(FplEnergyEntity):
@@ -57,24 +68,24 @@ class FplDailyUsageKWHSensor(FplEnergyEntity):
     @property
     def native_value(self):
         data = self.getData("DailyUsage")
-        self._attr_native_value = data["kwhActual"]
+        kwh_actual = _daily_usage_field(data, "kwhActual")
+        if kwh_actual is not None:
+            self._attr_native_value = kwh_actual
         return self._attr_native_value
 
     @property
-    def last_reset(self) -> datetime:
+    def last_reset(self) -> datetime | None:
         """An optional last_reset property for daily totals."""
         data = self.getData("DailyUsage")
-        # Given that the readTime happens at midnight, we can use the previous day's readTime as the last reset.
-        # The assumption here is that it is always at midnight.
-        # But we can always get the previous day's readTime if this assumption proves to be incorrect.
-        return data["readTime"] - timedelta(days=1)
+        return _daily_usage_read_time(data)
 
     def customAttributes(self):
         """Return any additional attributes."""
         data = self.getData("DailyUsage")
-        return {
-            "date": data["readTime"].strftime("%Y-%m-%d"),
-        }
+        read_time = _daily_usage_field(data, "readTime")
+        if read_time is None:
+            return {}
+        return {"date": read_time.strftime("%Y-%m-%d")}
 
 
 class FplDailyReceivedKWHSensor(FplEnergyEntity):
@@ -89,22 +100,23 @@ class FplDailyReceivedKWHSensor(FplEnergyEntity):
     @property
     def native_value(self):
         data = self.getData("DailyUsage")
-        self._attr_native_value = data["kwhActual"]
+        kwh_actual = _daily_usage_field(data, "kwhActual")
+        if kwh_actual is not None:
+            self._attr_native_value = kwh_actual
         return self._attr_native_value
 
     @property
     def last_reset(self) -> datetime | None:
         data = self.getData("DailyUsage")
-        return data["readTime"] - timedelta(days=1)
-        return None
+        return _daily_usage_read_time(data)
 
     def customAttributes(self):
         """Return any additional attributes."""
         data = self.getData("DailyUsage")
-        attributes = {
-            "date": data["readTime"].strftime("%Y-%m-%d"),
-        }
-        return attributes
+        read_time = _daily_usage_field(data, "readTime")
+        if read_time is None:
+            return {}
+        return {"date": read_time.strftime("%Y-%m-%d")}
 
 
 class FplDailyDeliveredKWHSensor(FplEnergyEntity):
@@ -119,21 +131,23 @@ class FplDailyDeliveredKWHSensor(FplEnergyEntity):
     @property
     def native_value(self):
         data = self.getData("DailyUsage")
-        self._attr_native_value = data["netDeliveredKwh"]
+        net_delivered_kwh = _daily_usage_field(data, "netDeliveredKwh")
+        if net_delivered_kwh is not None:
+            self._attr_native_value = net_delivered_kwh
         return self._attr_native_value
 
     @property
     def last_reset(self) -> datetime | None:
         data = self.getData("DailyUsage")
-        return data["readTime"] - timedelta(days=1)
+        return _daily_usage_read_time(data)
 
     def customAttributes(self):
         """Return any additional attributes."""
         data = self.getData("DailyUsage")
-        attributes = {
-            "date": data["readTime"].strftime("%Y-%m-%d"),
-        }
-        return attributes
+        read_time = _daily_usage_field(data, "readTime")
+        if read_time is None:
+            return {}
+        return {"date": read_time.strftime("%Y-%m-%d")}
 
 
 class FplDailyReceivedReading(FplEnergyEntity):
@@ -149,7 +163,9 @@ class FplDailyReceivedReading(FplEnergyEntity):
     @property
     def native_value(self):
         data = self.getData("DailyUsage")
-        self._attr_native_value = data["reading"]
+        reading = _daily_usage_field(data, "reading")
+        if reading is not None:
+            self._attr_native_value = reading
         return self._attr_native_value
 
 
@@ -165,5 +181,7 @@ class FplDailyDeliveredReading(FplEnergyEntity):
     @property
     def native_value(self):
         data = self.getData("DailyUsage")
-        self._attr_native_value = data["netDeliveredReading"]
+        net_delivered_reading = _daily_usage_field(data, "netDeliveredReading")
+        if net_delivered_reading is not None:
+            self._attr_native_value = net_delivered_reading
         return self._attr_native_value
