@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+import re
+from datetime import date, datetime, timedelta
 
 import async_timeout
 
@@ -31,13 +32,33 @@ URL_LIVE_ACCOUNT_SUMMARY = (
     API_HOST
     + "/cs/gulf/ssp/v1/accountservices/account/{account}/accountSummary?balance=n"
 )
+URL_LIVE_ACCOUNT_SUMMARY_BALANCE = (
+    API_HOST
+    + "/cs/gulf/ssp/v1/accountservices/account/{account}/accountSummary?balance=y"
+)
+URL_ACCOUNT_LITE_INFO = (
+    API_HOST + "/cs/customer/v3/accountservices/resources/accounts/{account}/lite-info"
+)
+URL_BILLING_HISTORY = (
+    API_HOST
+    + "/cs/customer/v3/account-summary/resources/accounts/bill-histories/{account}"
+)
 URL_MONTHLY_USAGE = (
     API_HOST
     + "/cs/gulf/ssp/v1/accountservices/account/{account}/monthlyUsage?contractId={contract_id}"
 )
 URL_DISAGGREGATION = (
+    API_HOST + "/cs/gulf/ssp/v1/rem/resources/customer/accounts/{account}/get-disagg"
+)
+URL_DAILY_USAGE = (
+    API_HOST + "/cs/gulf/ssp/v1/accountservices/account/{account}/daily-usage"
+)
+URL_HOURLY_USAGE = (
+    API_HOST + "/cs/gulf/ssp/v1/accountservices/account/{account}/hourly-usage"
+)
+URL_MOBILE_HOURLY_USAGE = (
     API_HOST
-    + "/cs/gulf/ssp/v1/rem/resources/customer/accounts/{account}/get-disagg"
+    + "/cs/customer/v1/energydashboard/resources/energy-usage/account/{account}/mobile-hourly-usage"
 )
 
 ACTIVE_ACCOUNT_STATUSES = {ACCOUNT_STATUS_ACTIVE, "ACT", "Active", "active"}
@@ -63,6 +84,7 @@ class FplNorthwestRegionApiClient:
         self._configured_accounts = [
             str(account).strip() for account in (configured_accounts or []) if account
         ]
+        self._account_context: dict[str, dict] = {}
 
     def _api_headers(self) -> dict[str, str]:
         return {
@@ -180,7 +202,41 @@ class FplNorthwestRegionApiClient:
         """Log out from FPL."""
 
     async def get_hourly_usage(self, account, premise, date) -> list:
-        """Hourly usage is not available for the Gulf SSP API yet."""
+        """Fetch hourly usage for Energy Dashboard statistics backfill."""
+        if not self.id_token:
+            await self.login()
+
+        headers = self._api_headers()
+        ctx = self._account_context.get(account, {})
+        meter_id = ctx.get("meter_id")
+        target_date = date.strftime("%Y-%m-%d")
+
+        if meter_id:
+            gulf_url = (
+                f"{URL_HOURLY_USAGE.format(account=account)}"
+                f"?date={target_date}&meterId={meter_id}"
+            )
+            gulf_payload = await self._request("GET", gulf_url, headers=headers)
+            parsed = self._parse_hourly_payload(gulf_payload)
+            if parsed:
+                return parsed
+
+        if premise:
+            mobile_payload = {
+                "premiseNumber": premise,
+                "startDate": date.strftime("%m-%d-%Y"),
+                "endDate": date.strftime("%m-%d-%Y"),
+            }
+            mobile_response = await self._request(
+                "POST",
+                URL_MOBILE_HOURLY_USAGE.format(account=account),
+                headers=headers,
+                json_payload=mobile_payload,
+            )
+            parsed = self._parse_hourly_payload(mobile_response)
+            if parsed:
+                return parsed
+
         return []
 
     async def update(self, account):
@@ -194,12 +250,21 @@ class FplNorthwestRegionApiClient:
         rem_summary = await self._request(
             "GET", URL_REM_ACCOUNT_SUMMARY.format(account=account), headers=headers
         )
+        contract_id = None
+        premise_id = None
         if isinstance(rem_summary, dict):
-            result["premise"] = rem_summary.get("premiseNumber")
-            result["contract_id"] = rem_summary.get("contractId")
+            contract_id = rem_summary.get("contractId")
+            premise_id = rem_summary.get("premiseNumber")
+            result["premise"] = premise_id
+            result["contract_id"] = contract_id
+            result["meterNo"] = rem_summary.get("meterNumber")
 
-        contract_id = result.get("contract_id")
-        premise_id = result.get("premise")
+        self._account_context[account] = {
+            "premise": premise_id,
+            "contract_id": contract_id,
+            "meter_id": rem_summary.get("meterNumber") if isinstance(rem_summary, dict) else None,
+            "zip_code": None,
+        }
 
         now = datetime.now()
         from_date = (now - timedelta(days=35)).strftime("%Y-%m-%d")
@@ -212,41 +277,106 @@ class FplNorthwestRegionApiClient:
             "toDate": to_date,
         }
 
-        tasks = [
-            self._request(
+        tasks = {
+            "live_summary": self._request(
                 "GET",
                 URL_LIVE_ACCOUNT_SUMMARY.format(account=account),
                 headers=headers,
-            )
-        ]
+            ),
+            "balance_summary": self._request(
+                "GET",
+                URL_LIVE_ACCOUNT_SUMMARY_BALANCE.format(account=account),
+                headers=headers,
+            ),
+            "lite_info": self._request(
+                "GET",
+                URL_ACCOUNT_LITE_INFO.format(account=account),
+                headers=headers,
+            ),
+            "billing_history": self._request(
+                "GET",
+                URL_BILLING_HISTORY.format(account=account),
+                headers=headers,
+            ),
+        }
         if contract_id:
-            tasks.append(
-                self._request(
-                    "GET",
-                    URL_MONTHLY_USAGE.format(account=account, contract_id=contract_id),
-                    headers=headers,
-                )
+            tasks["monthly"] = self._request(
+                "GET",
+                URL_MONTHLY_USAGE.format(account=account, contract_id=contract_id),
+                headers=headers,
             )
         if contract_id and premise_id:
-            tasks.append(
-                self._request(
-                    "POST",
-                    URL_DISAGGREGATION.format(account=account),
-                    headers=headers,
-                    json_payload=disagg_body,
-                )
+            tasks["disagg"] = self._request(
+                "POST",
+                URL_DISAGGREGATION.format(account=account),
+                headers=headers,
+                json_payload=disagg_body,
             )
 
-        responses = await asyncio.gather(*tasks)
-        live_summary = responses[0] if responses else None
-        monthly_data = responses[1] if len(responses) > 1 else None
-        disagg_data = responses[2] if len(responses) > 2 else None
+        task_names = list(tasks.keys())
+        responses = await asyncio.gather(*tasks.values())
+        payload = dict(zip(task_names, responses))
+
+        live_summary = payload.get("live_summary")
+        lite_info = payload.get("lite_info")
+
+        zip_code = self._zip_from_lite_info(lite_info)
+        if zip_code:
+            self._account_context[account]["zip_code"] = zip_code
 
         result.update(self._map_live_summary(live_summary))
-        result.update(self._map_monthly_usage(monthly_data))
-        result.update(self._map_disaggregation(disagg_data))
+        result.update(self._map_balance(payload.get("balance_summary"), payload.get("billing_history")))
+        result.update(self._map_monthly_usage(payload.get("monthly")))
+        result.update(self._map_disaggregation(payload.get("disagg")))
+
+        daily_usage_url = self._build_daily_usage_url(account, live_summary)
+        if daily_usage_url:
+            daily_payload = await self._request("GET", daily_usage_url, headers=headers)
+            result.update(self._map_daily_usage(daily_payload))
 
         return result
+
+    def _zip_from_lite_info(self, payload: dict | None) -> str | None:
+        if not isinstance(payload, dict):
+            return None
+        service_address = payload.get("data", {}).get("serviceAddress", {})
+        return service_address.get("zipcode") or service_address.get("zip")
+
+    def _build_daily_usage_url(self, account: str, live_summary: dict | None) -> str | None:
+        if not isinstance(live_summary, dict):
+            return None
+
+        ctx = self._account_context.get(account, {})
+        meter_id = ctx.get("meter_id")
+        zip_code = ctx.get("zip_code")
+        if not meter_id or not zip_code:
+            return None
+
+        summary_data = live_summary.get("accountSummary", {}).get("accountSummaryData", {})
+        bill_info = summary_data.get("billAndMeterInfo", {}) or {}
+        program_info = summary_data.get("programInfo", {}) or {}
+
+        start = self._parse_date(program_info.get("currentBillDate"))
+        end = self._parse_date(program_info.get("nextBillDate"))
+        if not start or not end:
+            return None
+
+        service_days = max((end - start).days, 1)
+        minimum_charge = bill_info.get("projBaseCharge") or bill_info.get("minimumCharge") or 0
+        bill_amount = bill_info.get("asOfDateAmount") or bill_info.get("projBillAmount") or 0
+        total_kwh = bill_info.get("asOfDateUsage") or bill_info.get("projBillKWH") or 0
+
+        return (
+            f"{URL_DAILY_USAGE.format(account=account)}"
+            f"?startDate={start.strftime('%Y-%m-%d')}"
+            f"&endDate={end.strftime('%Y-%m-%d')}"
+            f"&serviceDays={service_days}"
+            f"&meterId={meter_id}"
+            f"&minimumCharge={minimum_charge}"
+            f"&billAmount={bill_amount}"
+            f"&totalKwhConsumed={total_kwh}"
+            f"&zipCode={zip_code}"
+        )
 
     def _map_live_summary(self, payload: dict | None) -> dict:
         mapped: dict = {}
@@ -271,6 +401,17 @@ class FplNorthwestRegionApiClient:
         if bill_info.get("dailyAvgKwh") is not None:
             mapped["dailyAverageKWH"] = int(bill_info["dailyAvgKwh"])
 
+        for src, dest in (
+            ("recMtrReading", "recMtrReading"),
+            ("delMtrReading", "delMtrReading"),
+            ("receivedKwh", "recMtrReading"),
+            ("deliveredKwh", "delMtrReading"),
+        ):
+            if bill_info.get(src) is not None and dest not in mapped:
+                mapped[dest] = int(bill_info[src])
+
+        mapped["net_meter"] = bill_info.get("netMeterFlag") in (True, "Y", "y", "true", 1)
+
         today_raw = payload.get("today")
         current_bill = program_info.get("currentBillDate")
         next_bill = program_info.get("nextBillDate")
@@ -280,7 +421,9 @@ class FplNorthwestRegionApiClient:
             if start:
                 mapped["current_bill_date"] = start.strftime("%Y-%m-%d")
         if next_bill:
-            mapped["next_bill_date"] = next_bill
+            end = self._parse_date(next_bill)
+            if end:
+                mapped["next_bill_date"] = end.strftime("%Y-%m-%d")
 
         if current_bill and next_bill:
             start = self._parse_date(current_bill)
@@ -294,6 +437,76 @@ class FplNorthwestRegionApiClient:
                 mapped["remaining_days"] = max(service_days - as_of_days, 0)
 
         return mapped
+
+    def _map_balance(self, balance_summary: dict | None, billing_history: dict | None) -> dict:
+        mapped: dict = {}
+
+        if isinstance(balance_summary, dict):
+            summary_data = (
+                balance_summary.get("accountSummary", {})
+                .get("accountSummaryData", {})
+            )
+            balance_info = summary_data.get("balanceInfo") or summary_data.get("billAndMeterInfo") or {}
+            for key in ("amountDue", "balanceDue", "currentBalance", "actualBalance"):
+                if balance_info.get(key) is not None:
+                    mapped["balance"] = float(balance_info[key])
+                    break
+            due_raw = balance_info.get("dueDate") or balance_info.get("paymentDueDate")
+            due_date = self._parse_date(due_raw)
+            if due_date:
+                mapped["balance_due_date"] = due_date.date()
+
+        if isinstance(billing_history, dict):
+            results = billing_history.get("data", {}).get("results", [])
+            if results and isinstance(results, list):
+                latest = results[0]
+                if "balance" not in mapped:
+                    amount = latest.get("amountDue") or latest.get("totalAmount")
+                    if amount is not None:
+                        mapped["balance"] = float(str(amount).replace("$", "").replace(",", ""))
+                if "balance_due_date" not in mapped:
+                    due_text = self._parse_fpl_date(latest.get("dueDate"))
+                    if due_text:
+                        try:
+                            mapped["balance_due_date"] = datetime.strptime(
+                                due_text, "%Y-%m-%d"
+                            ).date()
+                        except ValueError:
+                            pass
+
+        return mapped
+
+    def _map_daily_usage(self, payload: dict | None) -> dict:
+        if not isinstance(payload, dict):
+            return {}
+
+        reads = payload.get("dailyMeterReads") or []
+        if not reads:
+            return {}
+
+        latest = max(reads, key=lambda row: row.get("date", ""))
+        read_day = self._parse_date(latest.get("date"))
+        if read_day is None:
+            return {}
+
+        read_time = read_day + timedelta(days=1)
+        billed_kwh = float(latest.get("billedConsKwh") or 0)
+        diff_kwh = float(latest.get("diffConsKwh") or 0)
+
+        daily_usage = {
+            "kwhActual": billed_kwh,
+            "billingCharge": float(latest.get("billedConsAmt") or 0),
+            "readTime": read_time,
+            "reading": float(latest.get("kwhRead") or 0),
+        }
+
+        if diff_kwh < 0:
+            daily_usage["netDeliveredKwh"] = abs(diff_kwh)
+        else:
+            daily_usage["netDeliveredKwh"] = billed_kwh
+            daily_usage["netDeliveredReading"] = float(latest.get("kwhRead") or 0)
+
+        return {"DailyUsage": daily_usage}
 
     def _map_monthly_usage(self, payload: dict | None) -> dict:
         mapped: dict = {}
@@ -328,12 +541,85 @@ class FplNorthwestRegionApiClient:
             }
         }
 
+    def _parse_hourly_payload(self, payload) -> list:
+        if not isinstance(payload, dict):
+            return []
+
+        candidates = []
+        if isinstance(payload.get("hourlyMeterReads"), list):
+            candidates = payload["hourlyMeterReads"]
+        elif isinstance(payload.get("hourlyReads"), list):
+            candidates = payload["hourlyReads"]
+        else:
+            data = payload.get("data") or {}
+            hourly_block = data.get("HourlyUsage")
+            if isinstance(hourly_block, list):
+                candidates = hourly_block
+            elif isinstance(hourly_block, dict):
+                candidates = hourly_block.get("data") or []
+
+        result = []
+        for hour_usage in candidates:
+            if not isinstance(hour_usage, dict):
+                continue
+
+            read_time = None
+            if hour_usage.get("readTime"):
+                read_time = self._parse_date(hour_usage["readTime"])
+            elif hour_usage.get("date") and hour_usage.get("hour") is not None:
+                day = self._parse_date(hour_usage["date"])
+                if day:
+                    read_time = day + timedelta(hours=int(hour_usage["hour"]))
+
+            if read_time is None:
+                continue
+
+            kwh = hour_usage.get("kwhActual")
+            if kwh is None:
+                kwh = hour_usage.get("billedConsKwh")
+            if kwh is None:
+                kwh = hour_usage.get("kwh")
+
+            cost = hour_usage.get("billingCharged")
+            if cost is None:
+                cost = hour_usage.get("billingCharge")
+            if cost is None:
+                cost = hour_usage.get("billedConsAmt")
+
+            result.append(
+                {
+                    "hour": hour_usage.get("hour"),
+                    "readTime": read_time,
+                    "billingCharged": cost,
+                    "kwhActual": kwh,
+                    "reading": hour_usage.get("reading") or hour_usage.get("kwhRead"),
+                }
+            )
+
+        return result
+
+    @staticmethod
+    def _parse_fpl_date(value) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            match = re.search(r"\/Date\((\d+)\)\/", value)
+            if match:
+                timestamp = int(match.group(1)) / 1000.0
+                return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d")
+            parsed = FplNorthwestRegionApiClient._parse_date(value)
+            if parsed:
+                return parsed.strftime("%Y-%m-%d")
+        return None
+
     @staticmethod
     def _parse_date(value) -> datetime | None:
         if value is None:
             return None
         if isinstance(value, datetime):
             return value
+        if isinstance(value, date):
+            return datetime.combine(value, datetime.min.time())
         text = str(value).strip()
         if not text:
             return None
