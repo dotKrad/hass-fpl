@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/dotKrad/hass-fpl/compare/v1.0.2...v1.0.3) (2026-06-17)
+
+
+### Bug Fixes
+
+* handle DailyUsage exception responses and missing sensor data ([df1ab35](https://github.com/dotKrad/hass-fpl/commit/df1ab352387005748d4e77b2f1e64790ac7f9fa8))
+
 ## [1.0.2](https://github.com/dotKrad/hass-fpl/compare/v1.0.1...v1.0.2) (2026-06-17)
 
 
