@@ -50,6 +50,7 @@ def _usage_block_ok(block):
         return False
     return True
 
+
 # URL_LOGIN = API_HOST + "/api/resources/login"
 URL_LOGIN = (
     API_HOST
@@ -366,13 +367,17 @@ class FplMainRegionApiClient:
                         if current_usage.get("billToDate") is not None:
                             data["billToDate"] = float(current_usage["billToDate"])
                         if current_usage.get("projectedBill") is not None:
-                            data["projectedBill"] = float(current_usage["projectedBill"])
+                            data["projectedBill"] = float(
+                                current_usage["projectedBill"]
+                            )
                         if current_usage.get("dailyAvg") is not None:
                             data["dailyAvg"] = float(current_usage["dailyAvg"])
                         if current_usage.get("avgHighTemp") is not None:
                             data["avgHighTemp"] = int(current_usage["avgHighTemp"])
                         if current_usage.get("billToDateKWH") is not None:
-                            data["billToDateKWH"] = float(current_usage["billToDateKWH"])
+                            data["billToDateKWH"] = float(
+                                current_usage["billToDateKWH"]
+                            )
                         data["recMtrReading"] = int(
                             current_usage.get("recMtrReading") or 0
                         )
@@ -392,7 +397,9 @@ class FplMainRegionApiClient:
                     if _usage_block_ok(daily_usage):
                         day_usage = _find_daily_usage_row(daily_usage)
                         if day_usage:
-                            read_time = _parse_daily_read_time(day_usage.get("readTime"))
+                            read_time = _parse_daily_read_time(
+                                day_usage.get("readTime")
+                            )
                             if read_time is not None:
                                 data["DailyUsage"] = {
                                     "kwhActual": float(day_usage.get("kwhActual") or 0),
