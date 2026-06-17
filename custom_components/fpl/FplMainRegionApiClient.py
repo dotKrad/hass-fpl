@@ -399,12 +399,22 @@ class FplMainRegionApiClient:
                 )
                 if response.status == 200:
                     response_json = await response.json()
-                    json_data = response_json["data"]
-
-                    hourly_usage = json_data["HourlyUsage"]["data"]
+                    json_data = response_json.get("data") or {}
+                    hourly_usage_block = json_data.get("HourlyUsage")
+                    if isinstance(hourly_usage_block, list):
+                        hourly_usage = hourly_usage_block
+                    elif isinstance(hourly_usage_block, dict):
+                        hourly_usage = hourly_usage_block.get("data") or []
+                    else:
+                        hourly_usage = []
 
                     for hour_usage in hourly_usage:
-                        read_time = datetime.fromisoformat(hour_usage["readTime"])
+                        if not isinstance(hour_usage, dict):
+                            continue
+                        read_time_raw = hour_usage.get("readTime")
+                        if read_time_raw is None:
+                            continue
+                        read_time = datetime.fromisoformat(read_time_raw)
                         data.append(
                             {
                                 "hour": hour_usage.get(
