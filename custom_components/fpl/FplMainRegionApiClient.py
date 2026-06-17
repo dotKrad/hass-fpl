@@ -18,6 +18,39 @@ from .const import (
 
 STATUS_CATEGORY_OPEN = "OPEN"
 
+
+def _parse_daily_read_time(read_time):
+    if not read_time:
+        return None
+    if isinstance(read_time, datetime):
+        return read_time
+    try:
+        return datetime.fromisoformat(read_time)
+    except (TypeError, ValueError):
+        return None
+
+
+def _find_daily_usage_row(daily_usage):
+    daily_rows = daily_usage.get("data") or []
+    if not daily_rows:
+        return None
+    end_date = daily_usage.get("endDate")
+    if end_date:
+        for day_usage in daily_rows:
+            if day_usage.get("date") == end_date:
+                return day_usage
+    return daily_rows[-1]
+
+
+def _usage_block_ok(block):
+    if not isinstance(block, dict):
+        return False
+    exception = block.get("exceptionDetails")
+    if isinstance(exception, dict) and exception.get("requestStatus") == "Failed":
+        return False
+    return True
+
+
 # URL_LOGIN = API_HOST + "/api/resources/login"
 URL_LOGIN = (
     API_HOST
@@ -292,10 +325,12 @@ class FplMainRegionApiClient:
 
         # Tested using MITM proxy and iOS app.
         # This is the payload and url used by the iOS app.
+        # iOS app: status "2" = active/open account, "4" = closed/inactive.
         json = {
             "status": "2",
             "accountType": "RESIDENTIAL",
             "premiseNumber": premise,
+            # account select `currentBillDate` is sent as `lastBilledDate` (MMDDYYYY).
             "lastBilledDate": lastBilledDate.strftime("%m%d%Y"),
             "amrFlag": "Y",
             "revCode": "1",
@@ -319,56 +354,67 @@ class FplMainRegionApiClient:
                 )
                 if response.status == 200:
                     response_data = await response.json()
-                    json_data = response_data["data"]
+                    json_data = response_data.get("data") or {}
 
-                    current_usage = json_data["CurrentUsage"]
-                    data["projectedKWH"] = int(current_usage.get("projectedKWH"))
-                    data["dailyAverageKWH"] = float(
-                        current_usage.get("dailyAverageKWH")
-                    )
-                    data["billToDate"] = float(current_usage.get("billToDate"))
-                    data["projectedBill"] = float(current_usage.get("projectedBill"))
-                    data["dailyAvg"] = float(current_usage.get("dailyAvg"))
-                    data["avgHighTemp"] = int(current_usage.get("avgHighTemp"))
-                    data["billToDateKWH"] = float(current_usage.get("billToDateKWH"))
-                    data["recMtrReading"] = int(current_usage.get("recMtrReading") or 0)
-                    data["delMtrReading"] = int(current_usage.get("delMtrReading") or 0)
-                    data["billStartDate"] = datetime.strptime(
-                        current_usage.get("billStartDate"), "%m-%d-%Y"
-                    ).date()
-                    data["billEndDate"] = datetime.strptime(
-                        current_usage.get("billEndDate"), "%m-%d-%Y"
-                    ).date()
-
-                    daily_usage = json_data["DailyUsage"]
-                    last_day_usage = daily_usage["endDate"]
-
-                    data["DailyUsage"] = {}
-                    for day_usage in daily_usage["data"]:
-                        # We want to get the last day's usage and use that as the sensor information.
-                        # Given that this sensor should reset every day to the previous day's usage.
-                        if day_usage["date"] == last_day_usage:
-                            data["DailyUsage"]["kwhActual"] = float(
-                                day_usage.get("kwhActual") or 0
+                    current_usage = json_data.get("CurrentUsage") or {}
+                    if _usage_block_ok(current_usage):
+                        if current_usage.get("projectedKWH") is not None:
+                            data["projectedKWH"] = int(current_usage["projectedKWH"])
+                        if current_usage.get("dailyAverageKWH") is not None:
+                            data["dailyAverageKWH"] = float(
+                                current_usage["dailyAverageKWH"]
                             )
-                            data["DailyUsage"]["billingCharge"] = float(
-                                day_usage.get("billingCharge") or 0
+                        if current_usage.get("billToDate") is not None:
+                            data["billToDate"] = float(current_usage["billToDate"])
+                        if current_usage.get("projectedBill") is not None:
+                            data["projectedBill"] = float(
+                                current_usage["projectedBill"]
                             )
-                            data["DailyUsage"]["readTime"] = datetime.fromisoformat(
+                        if current_usage.get("dailyAvg") is not None:
+                            data["dailyAvg"] = float(current_usage["dailyAvg"])
+                        if current_usage.get("avgHighTemp") is not None:
+                            data["avgHighTemp"] = int(current_usage["avgHighTemp"])
+                        if current_usage.get("billToDateKWH") is not None:
+                            data["billToDateKWH"] = float(
+                                current_usage["billToDateKWH"]
+                            )
+                        data["recMtrReading"] = int(
+                            current_usage.get("recMtrReading") or 0
+                        )
+                        data["delMtrReading"] = int(
+                            current_usage.get("delMtrReading") or 0
+                        )
+                        if current_usage.get("billStartDate"):
+                            data["billStartDate"] = datetime.strptime(
+                                current_usage["billStartDate"], "%m-%d-%Y"
+                            ).date()
+                        if current_usage.get("billEndDate"):
+                            data["billEndDate"] = datetime.strptime(
+                                current_usage["billEndDate"], "%m-%d-%Y"
+                            ).date()
+
+                    daily_usage = json_data.get("DailyUsage") or {}
+                    if _usage_block_ok(daily_usage):
+                        day_usage = _find_daily_usage_row(daily_usage)
+                        if day_usage:
+                            read_time = _parse_daily_read_time(
                                 day_usage.get("readTime")
                             )
-                            data["DailyUsage"]["reading"] = float(
-                                day_usage.get("reading")
-                            )
-
-                            # This is most likely not going to work, as this endpoint does not give any information related to delivery metrics.
-                            # TODO: Figure out where the delivery metrics can be grabbed from.
-                            data["DailyUsage"]["netDeliveredKwh"] = float(
-                                day_usage.get("netDeliveredKwh") or 0
-                            )
-                            data["DailyUsage"]["netDeliveredReading"] = float(
-                                day_usage.get("netDeliveredReading") or 0
-                            )
+                            if read_time is not None:
+                                data["DailyUsage"] = {
+                                    "kwhActual": float(day_usage.get("kwhActual") or 0),
+                                    "billingCharge": float(
+                                        day_usage.get("billingCharge") or 0
+                                    ),
+                                    "readTime": read_time,
+                                    "reading": float(day_usage.get("reading") or 0),
+                                    "netDeliveredKwh": float(
+                                        day_usage.get("netDeliveredKwh") or 0
+                                    ),
+                                    "netDeliveredReading": float(
+                                        day_usage.get("netDeliveredReading") or 0
+                                    ),
+                                }
 
         except Exception as e:
             _LOGGER.error(e)
