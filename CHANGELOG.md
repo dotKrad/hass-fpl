@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/dotKrad/hass-fpl/compare/v1.0.4...v1.1.0) (2026-06-17)
+
+
+### Features
+
+* port Gulf SSP API for Northwest FPL region ([#22](https://github.com/dotKrad/hass-fpl/issues/22)) ([da0bb1b](https://github.com/dotKrad/hass-fpl/commit/da0bb1bafdf97e4b1021ab4a62631129ea38d494))
+
+
+### Bug Fixes
+
+* restore state class on projected and daily average KWH sensors ([#62](https://github.com/dotKrad/hass-fpl/issues/62)) ([c40b196](https://github.com/dotKrad/hass-fpl/commit/c40b196fb5ec6d620759d23b34754fd13f0c4f70))
+
 ## [1.0.4](https://github.com/dotKrad/hass-fpl/compare/v1.0.3...v1.0.4) (2026-06-17)
 
 
