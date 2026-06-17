@@ -109,9 +109,7 @@ class FplNorthwestRegionApiClient:
                     response = await self.session.get(url, headers=request_headers)
 
             if response.status != 200:
-                _LOGGER.debug(
-                    "NW %s %s returned HTTP %s", method, url, response.status
-                )
+                _LOGGER.debug("NW %s %s returned HTTP %s", method, url, response.status)
                 return None
 
             return await response.json(content_type=None)
@@ -146,7 +144,10 @@ class FplNorthwestRegionApiClient:
         if response.status != 200:
             body = await response.text()
             _LOGGER.debug("NW Cognito login HTTP %s: %s", response.status, body)
-            if "NotAuthorizedException" in body or "Incorrect username or password" in body:
+            if (
+                "NotAuthorizedException" in body
+                or "Incorrect username or password" in body
+            ):
                 return LOGIN_RESULT_INVALIDPASSWORD
             return LOGIN_RESULT_FAILURE
 
@@ -262,7 +263,11 @@ class FplNorthwestRegionApiClient:
         self._account_context[account] = {
             "premise": premise_id,
             "contract_id": contract_id,
-            "meter_id": rem_summary.get("meterNumber") if isinstance(rem_summary, dict) else None,
+            "meter_id": (
+                rem_summary.get("meterNumber")
+                if isinstance(rem_summary, dict)
+                else None
+            ),
             "zip_code": None,
         }
 
@@ -325,7 +330,11 @@ class FplNorthwestRegionApiClient:
             self._account_context[account]["zip_code"] = zip_code
 
         result.update(self._map_live_summary(live_summary))
-        result.update(self._map_balance(payload.get("balance_summary"), payload.get("billing_history")))
+        result.update(
+            self._map_balance(
+                payload.get("balance_summary"), payload.get("billing_history")
+            )
+        )
         result.update(self._map_monthly_usage(payload.get("monthly")))
         result.update(self._map_disaggregation(payload.get("disagg")))
 
@@ -342,7 +351,9 @@ class FplNorthwestRegionApiClient:
         service_address = payload.get("data", {}).get("serviceAddress", {})
         return service_address.get("zipcode") or service_address.get("zip")
 
-    def _build_daily_usage_url(self, account: str, live_summary: dict | None) -> str | None:
+    def _build_daily_usage_url(
+        self, account: str, live_summary: dict | None
+    ) -> str | None:
         if not isinstance(live_summary, dict):
             return None
 
@@ -352,7 +363,9 @@ class FplNorthwestRegionApiClient:
         if not meter_id or not zip_code:
             return None
 
-        summary_data = live_summary.get("accountSummary", {}).get("accountSummaryData", {})
+        summary_data = live_summary.get("accountSummary", {}).get(
+            "accountSummaryData", {}
+        )
         bill_info = summary_data.get("billAndMeterInfo", {}) or {}
         program_info = summary_data.get("programInfo", {}) or {}
 
@@ -362,8 +375,12 @@ class FplNorthwestRegionApiClient:
             return None
 
         service_days = max((end - start).days, 1)
-        minimum_charge = bill_info.get("projBaseCharge") or bill_info.get("minimumCharge") or 0
-        bill_amount = bill_info.get("asOfDateAmount") or bill_info.get("projBillAmount") or 0
+        minimum_charge = (
+            bill_info.get("projBaseCharge") or bill_info.get("minimumCharge") or 0
+        )
+        bill_amount = (
+            bill_info.get("asOfDateAmount") or bill_info.get("projBillAmount") or 0
+        )
         total_kwh = bill_info.get("asOfDateUsage") or bill_info.get("projBillKWH") or 0
 
         return (
@@ -410,7 +427,13 @@ class FplNorthwestRegionApiClient:
             if bill_info.get(src) is not None and dest not in mapped:
                 mapped[dest] = int(bill_info[src])
 
-        mapped["net_meter"] = bill_info.get("netMeterFlag") in (True, "Y", "y", "true", 1)
+        mapped["net_meter"] = bill_info.get("netMeterFlag") in (
+            True,
+            "Y",
+            "y",
+            "true",
+            1,
+        )
 
         today_raw = payload.get("today")
         current_bill = program_info.get("currentBillDate")
@@ -438,15 +461,20 @@ class FplNorthwestRegionApiClient:
 
         return mapped
 
-    def _map_balance(self, balance_summary: dict | None, billing_history: dict | None) -> dict:
+    def _map_balance(
+        self, balance_summary: dict | None, billing_history: dict | None
+    ) -> dict:
         mapped: dict = {}
 
         if isinstance(balance_summary, dict):
-            summary_data = (
-                balance_summary.get("accountSummary", {})
-                .get("accountSummaryData", {})
+            summary_data = balance_summary.get("accountSummary", {}).get(
+                "accountSummaryData", {}
             )
-            balance_info = summary_data.get("balanceInfo") or summary_data.get("billAndMeterInfo") or {}
+            balance_info = (
+                summary_data.get("balanceInfo")
+                or summary_data.get("billAndMeterInfo")
+                or {}
+            )
             for key in ("amountDue", "balanceDue", "currentBalance", "actualBalance"):
                 if balance_info.get(key) is not None:
                     mapped["balance"] = float(balance_info[key])
@@ -463,7 +491,9 @@ class FplNorthwestRegionApiClient:
                 if "balance" not in mapped:
                     amount = latest.get("amountDue") or latest.get("totalAmount")
                     if amount is not None:
-                        mapped["balance"] = float(str(amount).replace("$", "").replace(",", ""))
+                        mapped["balance"] = float(
+                            str(amount).replace("$", "").replace(",", "")
+                        )
                 if "balance_due_date" not in mapped:
                     due_text = self._parse_fpl_date(latest.get("dueDate"))
                     if due_text:
