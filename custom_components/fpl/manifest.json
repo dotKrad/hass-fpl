@@ -1,12 +1,18 @@
 {
   "domain": "fpl",
   "name": "FPL",
-  "codeowners": ["@dotKrad"],
+  "codeowners": [
+    "@dotKrad"
+  ],
   "config_flow": true,
-  "dependencies": ["recorder"],
+  "dependencies": [
+    "recorder"
+  ],
   "documentation": "https://github.com/dotKrad/hass-fpl",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/dotKrad/hass-fpl/issues",
-  "requirements": ["integrationhelper"],
-  "version": "1.0.0"
+  "requirements": [
+    "integrationhelper"
+  ],
+  "version": "1.0.1"
 }
