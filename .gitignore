@@ -12,4 +12,3 @@ custom_components/fpl1/__pycache__/
 custom_components/fpl/secrets.py
 
 config/
-tools/fpl-api-capture/captures/
