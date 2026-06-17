@@ -12,10 +12,12 @@ from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_NAME
 
 from .const import (
     CONF_ACCOUNTS,
+    CONF_ACCOUNT_NUMBER,
     CONF_TERRITORY,
     DEFAULT_CONF_PASSWORD,
     DEFAULT_CONF_USERNAME,
     DOMAIN,
+    FPL_NORTHWEST,
     LOGIN_RESULT_OK,
     LOGIN_RESULT_FAILURE,
     LOGIN_RESULT_INVALIDUSER,
@@ -62,24 +64,40 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         #    return self.async_abort(reason="single_instance_allowed")
 
         if user_input is not None:
-            username = user_input[CONF_USERNAME]
+            username = user_input[CONF_USERNAME].strip().lower()
             password = user_input[CONF_PASSWORD]
+            manual_account = (user_input.get(CONF_ACCOUNT_NUMBER) or "").strip()
 
             if username not in configured_instances(self.hass):
                 session = async_create_clientsession(self.hass)
-                api = FplApi(username, password, session, loop=self.hass.loop)
+                api = FplApi(
+                    username,
+                    password,
+                    session,
+                    loop=self.hass.loop,
+                    accounts=[manual_account] if manual_account else None,
+                )
                 result = await api.login()
 
                 if result == LOGIN_RESULT_OK:
                     info = await api.get_basic_info()
 
                     accounts = info[CONF_ACCOUNTS]
+                    if not accounts and manual_account:
+                        accounts = [manual_account]
 
-                    # accounts = await api.async_get_open_accounts()
+                    if info[CONF_TERRITORY] == FPL_NORTHWEST and not accounts:
+                        self._errors["base"] = "account_required"
+                        await api.logout()
+                        return await self._show_config_form(user_input)
+
                     await api.logout()
 
+                    user_input[CONF_USERNAME] = username
                     user_input[CONF_ACCOUNTS] = accounts
                     user_input[CONF_TERRITORY] = info[CONF_TERRITORY]
+                    if manual_account:
+                        user_input[CONF_ACCOUNT_NUMBER] = manual_account
 
                     return self.async_create_entry(title=username, data=user_input)
 
@@ -103,16 +121,20 @@ class FplFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Show the configuration form to edit location data."""
         username = DEFAULT_CONF_USERNAME
         password = DEFAULT_CONF_PASSWORD
+        account_number = ""
 
         if user_input is not None:
             if CONF_USERNAME in user_input:
                 username = user_input[CONF_USERNAME]
             if CONF_PASSWORD in user_input:
                 password = user_input[CONF_PASSWORD]
+            if CONF_ACCOUNT_NUMBER in user_input:
+                account_number = user_input[CONF_ACCOUNT_NUMBER]
 
         data_schema = OrderedDict()
         data_schema[vol.Required(CONF_USERNAME, default=username)] = str
         data_schema[vol.Required(CONF_PASSWORD, default=password)] = str
+        data_schema[vol.Optional(CONF_ACCOUNT_NUMBER, default=account_number)] = str
 
         return self.async_show_form(
             step_id="user", data_schema=vol.Schema(data_schema), errors=self._errors

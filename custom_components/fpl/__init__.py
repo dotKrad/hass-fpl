@@ -19,6 +19,7 @@ from .const import (
     NAME,
     PLATFORMS,
     STARTUP_MESSAGE,
+    CONF_ACCOUNTS,
 )
 
 from .fplDataUpdateCoordinator import FplDataUpdateCoordinator
@@ -73,11 +74,12 @@ async def async_setup_entry(hass, entry):
     # Get "global" configuration.
     username = entry.data.get(CONF_USERNAME)
     password = entry.data.get(CONF_PASSWORD)
+    accounts = entry.data.get(CONF_ACCOUNTS, [])
 
     # Configure the client.
     _LOGGER.info("Configuring the client")
     session = async_get_clientsession(hass)
-    client = FplApi(username, password, session, hass.loop)
+    client = FplApi(username, password, session, hass.loop, accounts=accounts)
 
     coordinator = FplDataUpdateCoordinator(hass, client=client)
     await coordinator.async_refresh()
