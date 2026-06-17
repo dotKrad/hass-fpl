@@ -20,7 +20,6 @@ from .const import (
 from .FplMainRegionApiClient import FplMainRegionApiClient
 from .FplNorthwestRegionApiClient import FplNorthwestRegionApiClient
 
-
 _LOGGER = logging.getLogger(__package__)
 
 

@@ -4,7 +4,7 @@
         "step": {
             "user": {
                 "title": "Florida Power & Light",
-                "description": "If you need help with the configuration have a look here: https://github.com/dotKrad/hass-fpl",
+                "description": "Enter your FPL web account credentials.",
                 "data": {
                     "name": "Name",
                     "username": "Email",
