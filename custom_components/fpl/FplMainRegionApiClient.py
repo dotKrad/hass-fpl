@@ -482,26 +482,47 @@ class FplMainRegionApiClient:
                 json_data = await response.json()
                 if response.status == 200:
                     for account in json_data["data"]["AccountList"]["data"]:
-                        if account["accountNumber"] == account_number:
-                            balances = account["balancesDrilldown"]["data"]
+                        if account["accountNumber"] != account_number:
+                            continue
 
-                            if len(balances) == 0:
-                                continue
+                        balances_drilldown = account.get("balancesDrilldown")
+                        if balances_drilldown:
+                            balances = balances_drilldown.get("data") or []
+                            if balances:
+                                amount = balances[0].get("amount")
+                                if amount:
+                                    data["balance"] = float(
+                                        amount.replace("$", "").replace(",", "")
+                                    )
+                                due_date = balances[0].get("dueDate")
+                                if due_date:
+                                    try:
+                                        data["balance_due_date"] = datetime.strptime(
+                                            due_date, "%b %d, %Y"
+                                        ).date()
+                                    except ValueError:
+                                        pass
+                            break
 
-                            balance = balances[0]["amount"]
+                        actual_balance = account.get("actualBalance")
+                        if actual_balance is not None:
+                            data["balance"] = float(actual_balance)
+                        elif account.get("balance") is not None:
+                            data["balance"] = float(
+                                str(account["balance"])
+                                .replace("$", "")
+                                .replace(",", "")
+                            )
 
-                            balance = balance.replace("$", "")
-                            balance = balance.replace(",", "")
-                            balance = float(balance)
-
-                            data["balance"] = balance
-
-                            # Due Date is provided like this `Dec 22, 2025` we need to convert this to a date.
-                            balance_due_date = balances[0]["dueDate"]
-                            balance_due_date = datetime.strptime(
-                                balance_due_date, "%b %d, %Y"
-                            ).date()
-                            data["balance_due_date"] = balance_due_date
+                        due_date_val = account.get("dueDateVal")
+                        if due_date_val:
+                            try:
+                                data["balance_due_date"] = datetime.strptime(
+                                    due_date_val, "%b %d, %Y"
+                                ).date()
+                            except ValueError:
+                                pass
+                        break
 
                 return data
 
