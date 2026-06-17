@@ -139,11 +139,22 @@ class FplMainRegionApiClient:
 
             json_data = await response.json()
             if response.status != 200:
+                _LOGGER.warning(
+                    "Account list request failed with status %s at start=%s",
+                    response.status,
+                    start,
+                )
                 break
 
-            for account in json_data.get("data", []):
+            accounts_page = json_data.get("data", [])
+            if not accounts_page:
+                break
+
+            for account in accounts_page:
                 if account.get("statusCategory") == STATUS_CATEGORY_OPEN:
-                    result.append(account["accountNumber"])
+                    account_number = account.get("accountNumber")
+                    if account_number:
+                        result.append(account_number)
 
             if not json_data.get("hasMore"):
                 break
@@ -242,7 +253,7 @@ class FplMainRegionApiClient:
                         data.update(appliance_usage_data)
 
         except Exception as e:
-            _LOGGER.error("Failed to update account %s: %s", account, e)
+            _LOGGER.error("Failed to update account %s: %s", account, e, exc_info=True)
 
         data.update(await self.get_account_details(account))
 
@@ -604,6 +615,8 @@ class FplMainRegionApiClient:
                 return data
 
         except Exception as e:
-            _LOGGER.error(e)
+            _LOGGER.error(
+                "Failed to get account details for %s", account_number, exc_info=True
+            )
 
         return data
