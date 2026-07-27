@@ -614,7 +614,7 @@ class FplMainRegionApiClient:
 
                 return data
 
-        except Exception as e:
+        except Exception:
             _LOGGER.error(
                 "Failed to get account details for %s", account_number, exc_info=True
             )
