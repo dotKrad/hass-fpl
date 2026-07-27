@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import timedelta
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -10,7 +10,7 @@ from homeassistant.components.recorder.statistics import (
     async_add_external_statistics,
     StatisticData,
     StatisticMetaData,
-    get_last_statistics,
+    statistics_during_period,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.components import recorder
@@ -26,8 +26,28 @@ FPL_TIMEZONE = ZoneInfo("America/New_York")
 SCAN_INTERVAL = timedelta(seconds=1200)
 # Anything more than 15 days may cause Cloudflare to block all of our requests.
 HOURLY_USAGE_BACKFILL_DAYS = 15
+HOURLY_USAGE_START_HOUR = 4
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
+
+
+def _fpl_read_time(read_time: datetime) -> datetime:
+    """Return an FPL reading time in FPL's timezone."""
+    if read_time.tzinfo is None:
+        return read_time.replace(tzinfo=FPL_TIMEZONE)
+    return read_time.astimezone(FPL_TIMEZONE)
+
+
+def _is_hourly_day_complete(hourly: list, target_date: date) -> bool:
+    """Return whether hourly data contains the day's closing interval."""
+    expected_end = datetime.combine(
+        target_date + timedelta(days=1), time.min, FPL_TIMEZONE
+    )
+    return any(
+        (read_time := hour.get("readTime")) is not None
+        and _fpl_read_time(read_time) == expected_end
+        for hour in hourly
+    )
 
 
 class FplDataUpdateCoordinator(DataUpdateCoordinator):
@@ -37,72 +57,65 @@ class FplDataUpdateCoordinator(DataUpdateCoordinator):
         """Initialize."""
         self.api = client
         self.platforms = []
+        self._hourly_backfill_pending = True
+        self._finalized_hourly_dates: set[tuple[str, date]] = set()
 
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
 
-    async def _get_last_sum(self, stat_id: str):
+    async def _get_sum_before(self, stat_id: str, start: datetime) -> float:
         def _read():
-            return get_last_statistics(
-                hass=self.hass,
-                number_of_stats=1,
-                statistic_id=stat_id,
-                convert_units=False,
+            return statistics_during_period(
+                self.hass,
+                start - timedelta(hours=1),
+                start,
+                {stat_id},
+                "hour",
+                None,
                 types={"sum"},
             )
 
         result = await recorder.get_instance(self.hass).async_add_executor_job(_read)
 
         if rows := result.get(stat_id):
-            return float(rows[0]["sum"] or 0.0), dt_util.utc_from_timestamp(
-                rows[0]["start"]
-            )
-        return 0.0, None
+            return float(rows[-1]["sum"] or 0.0)
+        return 0.0
 
     async def _publish_hourly_statistics(self, account: str, hourly: list) -> None:
         stat_id_usage = f"{DOMAIN}:{account}_hourly_usage"
         stat_id_cost = f"{DOMAIN}:{account}_hourly_cost"
 
-        usage_sum, last_usage_start = await self._get_last_sum(stat_id_usage)
-        cost_sum, last_cost_start = await self._get_last_sum(stat_id_cost)
+        normalized = []
+        for hour in hourly:
+            read_time = hour.get("readTime")
+            if read_time is None:
+                continue
+            read_time_utc = _fpl_read_time(read_time).astimezone(dt_util.UTC)
+            read_time_utc = read_time_utc.replace(minute=0, second=0, microsecond=0)
+            normalized.append((read_time_utc - timedelta(hours=1), hour))
+
+        if not normalized:
+            return
+
+        normalized.sort(key=lambda item: item[0])
+        first_start = normalized[0][0]
+        usage_sum = await self._get_sum_before(stat_id_usage, first_start)
+        cost_sum = await self._get_sum_before(stat_id_cost, first_start)
 
         cost_stats = []
         usage_stats = []
-        for h in sorted(hourly, key=lambda x: x.get("readTime")):
+        for start, h in normalized:
             cost = h.get("billingCharged")
             usage = h.get("kwhActual")
 
-            read_time = h.get("readTime")
-            if read_time is None:
-                continue
-
-            # Ensure read_time is timezone-aware in FPL's timezone (Eastern)
-            if read_time.tzinfo is None:
-                read_time = read_time.replace(tzinfo=FPL_TIMEZONE)
-
-            # Convert to UTC for Home Assistant statistics
-            read_time_utc = read_time.astimezone(dt_util.UTC)
-            read_time_utc = read_time_utc.replace(minute=0, second=0, microsecond=0)
-            start = read_time_utc - timedelta(hours=1)
-
             if cost is not None:
-                if not last_cost_start or start > last_cost_start:
-                    cost_sum += cost
-                    cost_stat = StatisticData(
-                        start=start,
-                        sum=cost_sum,
-                        state=cost,
-                    )
-                    cost_stats.append(cost_stat)
+                cost_sum += cost
+                cost_stats.append(StatisticData(start=start, sum=cost_sum, state=cost))
 
             if usage is not None:
-                if not last_usage_start or start > last_usage_start:
-                    usage_sum += usage
-                    usage_stat = StatisticData(
-                        start=start,
-                        sum=usage_sum,
-                        state=usage,
-                    )
-                    usage_stats.append(usage_stat)
+                usage_sum += usage
+                usage_stats.append(
+                    StatisticData(start=start, sum=usage_sum, state=usage)
+                )
 
         if cost_stats:
             metadata = StatisticMetaData(
@@ -133,35 +146,42 @@ class FplDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         try:
             data = await self.api.async_get_data()
+            now = dt_util.now().astimezone(FPL_TIMEZONE)
+            if now.hour < HOURLY_USAGE_START_HOUR:
+                return data
 
-            # Backfill hourly cost for accounts
+            yesterday = now.date() - timedelta(days=1)
+            if self._hourly_backfill_pending:
+                target_dates = [
+                    now.date() - timedelta(days=offset)
+                    for offset in range(HOURLY_USAGE_BACKFILL_DAYS, 0, -1)
+                ]
+            else:
+                target_dates = [yesterday]
+
             for account in data.get(CONF_ACCOUNTS, []):
                 premise = data.get(account, {}).get("premise")
-                # If there is already hourly usage statistics, then only backfill the yesterday.
-                _, last_sum_start = await self._get_last_sum(
-                    f"{DOMAIN}:{account}_hourly_usage"
-                )
-                if last_sum_start is not None:
-                    date = dt_util.now() - timedelta(days=1)
+                complete_dates = []
+                all_hourly = []
+                for target_date in target_dates:
+                    if (account, target_date) in self._finalized_hourly_dates:
+                        continue
                     hourly = await self.api.apiClient.get_hourly_usage(
-                        account, premise, date
+                        account, premise, target_date
                     )
-                    await self._publish_hourly_statistics(account, hourly)
-                else:
-                    # Only backfill the full amount of days if the account has no hourly usage statistics.
-                    # We need to start backwards. For example today - 360 days.
-                    date = dt_util.now() - timedelta(days=HOURLY_USAGE_BACKFILL_DAYS)
-
-                    all_hourly: list = []
-                    for _ in range(HOURLY_USAGE_BACKFILL_DAYS):
-                        hourly = await self.api.apiClient.get_hourly_usage(
-                            account, premise, date
-                        )
+                    if _is_hourly_day_complete(hourly, target_date):
                         all_hourly.extend(hourly)
-                        date = date + timedelta(days=1)
+                        complete_dates.append(target_date)
+                    if len(target_dates) > 1:
                         await asyncio.sleep(1)
-                    if all_hourly:
-                        await self._publish_hourly_statistics(account, all_hourly)
+
+                if all_hourly:
+                    await self._publish_hourly_statistics(account, all_hourly)
+                    self._finalized_hourly_dates.update(
+                        (account, target_date) for target_date in complete_dates
+                    )
+
+            self._hourly_backfill_pending = False
 
             return data
         except Exception as exception:
