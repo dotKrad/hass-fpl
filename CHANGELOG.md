@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/dotKrad/hass-fpl/compare/v1.1.0...v1.1.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* finalize delayed hourly statistics after FPL publishes complete data ([#85](https://github.com/dotKrad/hass-fpl/issues/85)) ([#87](https://github.com/dotKrad/hass-fpl/pull/87))
+
 ## [1.1.0](https://github.com/dotKrad/hass-fpl/compare/v1.0.4...v1.1.0) (2026-06-17)
 
 
