@@ -151,7 +151,8 @@ class FplDataUpdateCoordinator(DataUpdateCoordinator):
                 return data
 
             yesterday = now.date() - timedelta(days=1)
-            if self._hourly_backfill_pending:
+            is_backfill = self._hourly_backfill_pending
+            if is_backfill:
                 target_dates = [
                     now.date() - timedelta(days=offset)
                     for offset in range(HOURLY_USAGE_BACKFILL_DAYS, 0, -1)
@@ -159,12 +160,17 @@ class FplDataUpdateCoordinator(DataUpdateCoordinator):
             else:
                 target_dates = [yesterday]
 
-            for account in data.get(CONF_ACCOUNTS, []):
+            accounts = data.get(CONF_ACCOUNTS, [])
+            backfill_complete = bool(accounts)
+            for account in accounts:
                 premise = data.get(account, {}).get("premise")
                 complete_dates = []
                 all_hourly = []
                 for target_date in target_dates:
-                    if (account, target_date) in self._finalized_hourly_dates:
+                    if (
+                        not is_backfill
+                        and (account, target_date) in self._finalized_hourly_dates
+                    ):
                         continue
                     hourly = await self.api.apiClient.get_hourly_usage(
                         account, premise, target_date
@@ -175,13 +181,18 @@ class FplDataUpdateCoordinator(DataUpdateCoordinator):
                     if len(target_dates) > 1:
                         await asyncio.sleep(1)
 
+                if is_backfill and len(complete_dates) != len(target_dates):
+                    backfill_complete = False
+                    continue
+
                 if all_hourly:
                     await self._publish_hourly_statistics(account, all_hourly)
                     self._finalized_hourly_dates.update(
                         (account, target_date) for target_date in complete_dates
                     )
 
-            self._hourly_backfill_pending = False
+            if is_backfill:
+                self._hourly_backfill_pending = not backfill_complete
 
             return data
         except Exception as exception:

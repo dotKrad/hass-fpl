@@ -176,6 +176,42 @@ class HourlySchedulingTests(unittest.IsolatedAsyncioTestCase):
             },
         )
 
+    async def test_retries_entire_backfill_when_middle_day_is_incomplete(self):
+        today = date(2026, 7, 27)
+        incomplete_date = today - timedelta(days=7)
+        incomplete_returned = False
+
+        def hourly_response(_account, _premise, target):
+            nonlocal incomplete_returned
+            complete = target != incomplete_date or incomplete_returned
+            if target == incomplete_date:
+                incomplete_returned = True
+            return hourly_day(target, complete=complete)
+
+        coordinator = self.make_coordinator(hourly_response)
+        coordinator._hourly_backfill_pending = True
+
+        with (
+            patch.object(
+                coordinator_module.dt_util,
+                "now",
+                return_value=datetime(2026, 7, 27, 4, tzinfo=FPL_TIMEZONE),
+            ),
+            patch.object(coordinator_module.asyncio, "sleep", new=AsyncMock()),
+        ):
+            await coordinator._async_update_data()
+            self.assertTrue(coordinator._hourly_backfill_pending)
+            self.assertEqual(coordinator._publish_hourly_statistics.await_count, 0)
+
+            await coordinator._async_update_data()
+
+        self.assertFalse(coordinator._hourly_backfill_pending)
+        self.assertEqual(
+            coordinator.api.apiClient.get_hourly_usage.await_count,
+            HOURLY_USAGE_BACKFILL_DAYS * 2,
+        )
+        coordinator._publish_hourly_statistics.assert_awaited_once()
+
 
 if __name__ == "__main__":
     unittest.main()
