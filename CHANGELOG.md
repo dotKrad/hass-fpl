@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4](https://github.com/dotKrad/hass-fpl/compare/v1.1.3...v1.1.4) (2026-08-23)
+
+
+### Bug Fixes
+
+* populate projected budget bill and deferred amount sensors ([8b6c4fe](https://github.com/dotKrad/hass-fpl/commit/8b6c4fea1f5333f7dd84685dacf0b8c08ad07f8d)), closes [#92](https://github.com/dotKrad/hass-fpl/issues/92)
+
 ## [1.1.3](https://github.com/dotKrad/hass-fpl/compare/v1.1.2...v1.1.3) (2026-07-27)
 
 
