@@ -176,9 +176,7 @@ class BudgetBillingSensorTests(unittest.TestCase):
             }
         )
 
-        proj_budget_sensor = ProjectedBudgetBillSensor(
-            coordinator, None, "1234567890"
-        )
+        proj_budget_sensor = ProjectedBudgetBillSensor(coordinator, None, "1234567890")
         deferred_sensor = DeferedAmountSensor(coordinator, None, "1234567890")
         budget_daily_avg_sensor = BudgetDailyAverageSensor(
             coordinator, None, "1234567890"
@@ -205,9 +203,7 @@ class BudgetBillingSensorTests(unittest.TestCase):
         )
 
         deferred_sensor = DeferedAmountSensor(coordinator, None, "1234567890")
-        proj_budget_sensor = ProjectedBudgetBillSensor(
-            coordinator, None, "1234567890"
-        )
+        proj_budget_sensor = ProjectedBudgetBillSensor(coordinator, None, "1234567890")
         proj_bill_sensor = FplProjectedBillSensor(coordinator, None, "1234567890")
         bill_to_date_sensor = BillToDateSensor(coordinator, None, "1234567890")
 
