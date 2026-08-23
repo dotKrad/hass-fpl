@@ -105,9 +105,9 @@ class BillToDateSensor(FplMoneyEntity):
         budget_billing_bill_to_date = self.getData("budget_billing_bill_to_date")
         bill_to_date = self.getData("billToDate")
 
-        if budget_bill:
+        if budget_bill and budget_billing_bill_to_date is not None:
             self._attr_native_value = budget_billing_bill_to_date
-        else:
+        elif bill_to_date is not None:
             self._attr_native_value = bill_to_date
 
         return self._attr_native_value
