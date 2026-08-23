@@ -233,14 +233,6 @@ class FplMainRegionApiClient:
                     def hasProgram(programName) -> bool:
                         return programName in programs and programs[programName]
 
-                    # Budget Billing program
-                    if hasProgram("BBL"):
-                        data["budget_bill"] = True
-                        bbl_data = await self.__getBBL_async(account, data)
-                        data.update(bbl_data)
-                    else:
-                        data["budget_bill"] = False
-
                     if premise and meterno:
                         energy_service_data = await self.get_energy_usage(
                             account, premise, currentBillDate, meterno
@@ -251,6 +243,14 @@ class FplMainRegionApiClient:
                             account, premise
                         )
                         data.update(appliance_usage_data)
+
+                    # Budget Billing program
+                    if hasProgram("BBL"):
+                        data["budget_bill"] = True
+                        bbl_data = await self.__getBBL_async(account, data)
+                        data.update(bbl_data)
+                    else:
+                        data["budget_bill"] = False
 
         except Exception as e:
             _LOGGER.error("Failed to update account %s: %s", account, e, exc_info=True)
@@ -300,29 +300,44 @@ class FplMainRegionApiClient:
         _LOGGER.info("Getting budget billing data")
         data = {}
 
+        headers = {}
+        if hasattr(self, "jwt_token") and self.jwt_token:
+            headers["jwttoken"] = self.jwt_token
+
         try:
-            headers = {}
-            if hasattr(self, "jwt_token") and self.jwt_token:
-                headers["jwttoken"] = self.jwt_token
             async with async_timeout.timeout(TIMEOUT):
                 response = await self.session.get(
                     URL_BUDGET_BILLING_PREMISE_DETAILS.format(account=account),
                     headers=headers,
                 )
                 if response.status == 200:
-                    r = (await response.json())["data"]
-                    dataList = r["graphData"]
+                    response_json = await response.json()
+                    r = response_json.get("data") or {}
+                    dataList = r.get("graphData") or []
 
                     # startIndex = len(dataList) - 1
 
                     billingCharge = 0
-                    budgetBillDeferBalance = r["defAmt"]
+                    budgetBillDeferBalance = (
+                        float(r["defAmt"]) if r.get("defAmt") is not None else 0.0
+                    )
+                    if r.get("defAmt") is not None:
+                        data["defered_amount"] = budgetBillDeferBalance
 
-                    projectedBill = projectedBillData["projected_bill"]
-                    asOfDays = projectedBillData["as_of_days"]
+                    projected_bill_val = projectedBillData.get("projectedBill")
+                    if projected_bill_val is None:
+                        projected_bill_val = projectedBillData.get(
+                            "projected_bill", 0.0
+                        )
+                    projectedBill = float(projected_bill_val or 0.0)
+                    asOfDays = int(projectedBillData.get("as_of_days") or 0)
 
                     for det in dataList:
-                        billingCharge += det["actuallBillAmt"]
+                        if (
+                            isinstance(det, dict)
+                            and det.get("actuallBillAmt") is not None
+                        ):
+                            billingCharge += float(det["actuallBillAmt"])
 
                     calc1 = (projectedBill + billingCharge) / 12
                     calc2 = (1 / 12) * (budgetBillDeferBalance)
@@ -335,20 +350,33 @@ class FplMainRegionApiClient:
                     data["budget_billing_bill_to_date"] = bbAsOfDateAmt
 
                     data["budget_billing_projected_bill"] = float(projectedBudgetBill)
+        except Exception as e:
+            _LOGGER.error(
+                "Failed to get budget billing premise details for account %s: %s",
+                account,
+                e,
+                exc_info=True,
+            )
 
-            headers = {}
-            if hasattr(self, "jwt_token") and self.jwt_token:
-                headers["jwttoken"] = self.jwt_token
+        try:
             async with async_timeout.timeout(TIMEOUT):
                 response = await self.session.get(
                     URL_BUDGET_BILLING_GRAPH.format(account=account), headers=headers
                 )
                 if response.status == 200:
-                    r = (await response.json())["data"]
-                    data["bill_to_date"] = float(r["eleAmt"])
-                    data["defered_amount"] = float(r["defAmt"])
+                    response_json = await response.json()
+                    r = response_json.get("data") or {}
+                    if r.get("eleAmt") is not None:
+                        data["bill_to_date"] = float(r["eleAmt"])
+                    if r.get("defAmt") is not None:
+                        data["defered_amount"] = float(r["defAmt"])
         except Exception as e:
-            _LOGGER.error(e)
+            _LOGGER.error(
+                "Failed to get budget billing graph for account %s: %s",
+                account,
+                e,
+                exc_info=True,
+            )
 
         return data
 
