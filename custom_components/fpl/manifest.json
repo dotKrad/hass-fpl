@@ -2,7 +2,8 @@
   "domain": "fpl",
   "name": "FPL",
   "codeowners": [
-    "@dotKrad"
+    "@dotKrad",
+    "@CamiloValderruten"
   ],
   "config_flow": true,
   "dependencies": [
