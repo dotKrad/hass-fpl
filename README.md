@@ -1,5 +1,14 @@
 <img width="200" alt="Florida_Power_ _Light_Logo svg" src="https://github.com/user-attachments/assets/a1a8e044-7e88-43fd-ae91-eb0336d7fb40" />
 
+<p align="left">
+  <a href="https://github.com/hacs/default"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square&logo=homeassistantcommunitystore&logoColor=white" alt="HACS Custom"></a>
+  <a href="https://github.com/dotKrad/hass-fpl/releases"><img src="https://img.shields.io/github/v/release/dotKrad/hass-fpl?style=flat-square&color=38BDF8" alt="Latest Release"></a>
+  <a href="https://www.home-assistant.io/"><img src="https://img.shields.io/badge/Home%20Assistant-2024.1%2B-41BDF5?style=flat-square&logo=homeassistant&logoColor=white" alt="Home Assistant"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/dotKrad/hass-fpl?style=flat-square&color=818CF8" alt="License"></a>
+</p>
+
+> **Project Status**: Originally created by [@dotKrad](https://github.com/dotKrad). Actively maintained and developed by [@CamiloValderruten](https://github.com/CamiloValderruten).
+
 ---
 
 ## Features
