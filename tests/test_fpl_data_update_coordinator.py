@@ -176,7 +176,7 @@ class HourlySchedulingTests(unittest.IsolatedAsyncioTestCase):
             },
         )
 
-    async def test_retries_entire_backfill_when_middle_day_is_incomplete(self):
+    async def test_publishes_complete_days_when_middle_day_is_incomplete(self):
         today = date(2026, 7, 27)
         incomplete_date = today - timedelta(days=7)
         incomplete_returned = False
@@ -201,7 +201,11 @@ class HourlySchedulingTests(unittest.IsolatedAsyncioTestCase):
         ):
             await coordinator._async_update_data()
             self.assertTrue(coordinator._hourly_backfill_pending)
-            self.assertEqual(coordinator._publish_hourly_statistics.await_count, 0)
+            self.assertEqual(coordinator._publish_hourly_statistics.await_count, 1)
+            self.assertEqual(
+                len(coordinator._publish_hourly_statistics.await_args.args[1]),
+                (HOURLY_USAGE_BACKFILL_DAYS - 1) * 24,
+            )
 
             await coordinator._async_update_data()
 
@@ -210,7 +214,7 @@ class HourlySchedulingTests(unittest.IsolatedAsyncioTestCase):
             coordinator.api.apiClient.get_hourly_usage.await_count,
             HOURLY_USAGE_BACKFILL_DAYS * 2,
         )
-        coordinator._publish_hourly_statistics.assert_awaited_once()
+        self.assertEqual(coordinator._publish_hourly_statistics.await_count, 2)
 
 
 if __name__ == "__main__":

@@ -227,7 +227,8 @@ class FplDataUpdateCoordinator(DataUpdateCoordinator):
 
                 return data
             finally:
-                if self.api.apiClient is not None:
-                    await self.api.logout()
+                logout = getattr(self.api, "logout", None)
+                if logout is not None:
+                    await logout()
         except Exception as exception:
             raise UpdateFailed() from exception
