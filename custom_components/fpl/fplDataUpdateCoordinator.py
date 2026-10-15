@@ -146,54 +146,88 @@ class FplDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         try:
             data = await self.api.async_get_data()
-            now = dt_util.now().astimezone(FPL_TIMEZONE)
-            if now.hour < HOURLY_USAGE_START_HOUR:
+            try:
+                now = dt_util.now().astimezone(FPL_TIMEZONE)
+                if now.hour < HOURLY_USAGE_START_HOUR:
+                    return data
+
+                yesterday = now.date() - timedelta(days=1)
+                is_backfill = self._hourly_backfill_pending
+                if is_backfill:
+                    target_dates = [
+                        now.date() - timedelta(days=offset)
+                        for offset in range(HOURLY_USAGE_BACKFILL_DAYS, 0, -1)
+                    ]
+                else:
+                    target_dates = [yesterday]
+
+                accounts = data.get(CONF_ACCOUNTS, [])
+                _LOGGER.debug(
+                    "Hourly statistics: now=%s accounts=%s backfill=%s",
+                    now,
+                    accounts,
+                    self._hourly_backfill_pending,
+                )
+                backfill_complete = bool(accounts)
+                for account in accounts:
+                    premise = data.get(account, {}).get("premise")
+                    complete_dates = []
+                    all_hourly = []
+                    for target_date in target_dates:
+                        if (
+                            not is_backfill
+                            and (account, target_date) in self._finalized_hourly_dates
+                        ):
+                            continue
+                        _LOGGER.debug(
+                            "Fetching FPL hourly usage: account=%s premise=%s date=%s",
+                            account,
+                            premise,
+                            target_date,
+                        )
+                        started = dt_util.utcnow()
+                        try:
+                            hourly = await self.api.apiClient.get_hourly_usage(
+                                account, premise, target_date
+                            )
+                        except Exception as error:
+                            _LOGGER.error(
+                                "FPL hourly request raised: account=%s date=%s error=%r",
+                                account,
+                                target_date,
+                                error,
+                            )
+                            hourly = []
+                        elapsed = (dt_util.utcnow() - started).total_seconds()
+                        _LOGGER.info(
+                            "FPL hourly response: account=%s date=%s readings=%d complete=%s elapsed=%.3fs",
+                            account,
+                            target_date,
+                            len(hourly),
+                            _is_hourly_day_complete(hourly, target_date),
+                            elapsed,
+                        )
+                        if _is_hourly_day_complete(hourly, target_date):
+                            all_hourly.extend(hourly)
+                            complete_dates.append(target_date)
+                        if len(target_dates) > 1:
+                            await asyncio.sleep(1)
+
+                    if is_backfill and len(complete_dates) != len(target_dates):
+                        backfill_complete = False
+
+                    if all_hourly:
+                        await self._publish_hourly_statistics(account, all_hourly)
+                        self._finalized_hourly_dates.update(
+                            (account, target_date) for target_date in complete_dates
+                        )
+
+                if is_backfill:
+                    self._hourly_backfill_pending = not backfill_complete
+
                 return data
-
-            yesterday = now.date() - timedelta(days=1)
-            is_backfill = self._hourly_backfill_pending
-            if is_backfill:
-                target_dates = [
-                    now.date() - timedelta(days=offset)
-                    for offset in range(HOURLY_USAGE_BACKFILL_DAYS, 0, -1)
-                ]
-            else:
-                target_dates = [yesterday]
-
-            accounts = data.get(CONF_ACCOUNTS, [])
-            backfill_complete = bool(accounts)
-            for account in accounts:
-                premise = data.get(account, {}).get("premise")
-                complete_dates = []
-                all_hourly = []
-                for target_date in target_dates:
-                    if (
-                        not is_backfill
-                        and (account, target_date) in self._finalized_hourly_dates
-                    ):
-                        continue
-                    hourly = await self.api.apiClient.get_hourly_usage(
-                        account, premise, target_date
-                    )
-                    if _is_hourly_day_complete(hourly, target_date):
-                        all_hourly.extend(hourly)
-                        complete_dates.append(target_date)
-                    if len(target_dates) > 1:
-                        await asyncio.sleep(1)
-
-                if is_backfill and len(complete_dates) != len(target_dates):
-                    backfill_complete = False
-                    continue
-
-                if all_hourly:
-                    await self._publish_hourly_statistics(account, all_hourly)
-                    self._finalized_hourly_dates.update(
-                        (account, target_date) for target_date in complete_dates
-                    )
-
-            if is_backfill:
-                self._hourly_backfill_pending = not backfill_complete
-
-            return data
+            finally:
+                if self.api.apiClient is not None:
+                    await self.api.logout()
         except Exception as exception:
             raise UpdateFailed() from exception

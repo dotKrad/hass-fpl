@@ -497,43 +497,58 @@ class FplMainRegionApiClient:
             headers = {}
             if hasattr(self, "jwt_token") and self.jwt_token:
                 headers["jwttoken"] = self.jwt_token
-            async with async_timeout.timeout(TIMEOUT):
-                response = await self.session.post(
-                    URL_APPLIANCE_USAGE,
-                    json=JSON,
-                    headers=headers,
+            response = await self.session.post(
+                URL_APPLIANCE_USAGE,
+                json=JSON,
+                headers=headers,
+                timeout=TIMEOUT,
+            )
+            if response.status != 200:
+                _LOGGER.warning(
+                    "Hourly usage response: account=%s date=%s status=%s",
+                    account,
+                    date,
+                    response.status,
                 )
-                if response.status == 200:
-                    response_json = await response.json()
-                    json_data = response_json.get("data") or {}
-                    hourly_usage_block = json_data.get("HourlyUsage")
-                    if isinstance(hourly_usage_block, list):
-                        hourly_usage = hourly_usage_block
-                    elif isinstance(hourly_usage_block, dict):
-                        hourly_usage = hourly_usage_block.get("data") or []
-                    else:
-                        hourly_usage = []
+            else:
+                response_json = await response.json()
+                json_data = response_json.get("data") or {}
+                hourly_usage_block = json_data.get("HourlyUsage")
+                if isinstance(hourly_usage_block, list):
+                    hourly_usage = hourly_usage_block
+                elif isinstance(hourly_usage_block, dict):
+                    hourly_usage = hourly_usage_block.get("data") or []
+                else:
+                    hourly_usage = []
+                _LOGGER.debug(
+                    "Hourly usage payload: account=%s date=%s data_keys=%s block_type=%s readings=%d",
+                    account,
+                    date,
+                    sorted(json_data.keys()),
+                    type(hourly_usage_block).__name__,
+                    len(hourly_usage),
+                )
 
-                    for hour_usage in hourly_usage:
-                        if not isinstance(hour_usage, dict):
-                            continue
-                        read_time_raw = hour_usage.get("readTime")
-                        if read_time_raw is None:
-                            continue
-                        read_time = datetime.fromisoformat(read_time_raw)
-                        data.append(
-                            {
-                                "hour": hour_usage.get(
-                                    "hour"
-                                ),  # 1 - 24 (Where 1 = from 12AM to 1AM)
-                                "readTime": read_time,  # This is the end of the hour, for example 1AM.
-                                "billingCharged": hour_usage.get("billingCharged"),
-                                "kwhActual": hour_usage["kwhActual"],
-                                "reading": hour_usage["reading"],
-                            }
-                        )
+                for hour_usage in hourly_usage:
+                    if not isinstance(hour_usage, dict):
+                        continue
+                    read_time_raw = hour_usage.get("readTime")
+                    if read_time_raw is None:
+                        continue
+                    read_time = datetime.fromisoformat(read_time_raw)
+                    data.append(
+                        {
+                            "hour": hour_usage.get(
+                                "hour"
+                            ),  # 1 - 24 (Where 1 = from 12AM to 1AM)
+                            "readTime": read_time,  # This is the end of the hour, for example 1AM.
+                            "billingCharged": hour_usage.get("billingCharged"),
+                            "kwhActual": hour_usage["kwhActual"],
+                            "reading": hour_usage["reading"],
+                        }
+                    )
         except Exception as e:
-            _LOGGER.error(e)
+            _LOGGER.error("Hourly usage request failed: %r", e)
 
         return data
 
