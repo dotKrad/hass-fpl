@@ -79,14 +79,26 @@ class HourlyPublishingTests(unittest.IsolatedAsyncioTestCase):
         ) as add_statistics:
             await coordinator._publish_hourly_statistics("account", hourly)
 
+        self.assertEqual(len(add_statistics.call_args_list), 2)
+        for call in add_statistics.call_args_list:
+            self.assertIs(
+                call.args[1]["mean_type"], coordinator_module.StatisticMeanType.NONE
+            )
+
         calls_by_id = {
-            call.args[1]["statistic_id"]: call.args[2]
+            call.args[1]["statistic_id"]: call
             for call in add_statistics.call_args_list
         }
         self.assertIn("fpl:account_hourly_usage", calls_by_id)
         self.assertIn("fpl:account_hourly_cost", calls_by_id)
-        usage = calls_by_id["fpl:account_hourly_usage"]
-        cost = calls_by_id["fpl:account_hourly_cost"]
+        usage_metadata = calls_by_id["fpl:account_hourly_usage"].args[1]
+        cost_metadata = calls_by_id["fpl:account_hourly_cost"].args[1]
+        self.assertEqual(
+            usage_metadata["unit_class"], coordinator_module.EnergyConverter.UNIT_CLASS
+        )
+        self.assertIsNone(cost_metadata["unit_class"])
+        usage = calls_by_id["fpl:account_hourly_usage"].args[2]
+        cost = calls_by_id["fpl:account_hourly_cost"].args[2]
         self.assertEqual([row["state"] for row in usage], [2.0, 3.0])
         self.assertEqual([row["sum"] for row in usage], [102.0, 105.0])
         self.assertEqual([row["sum"] for row in cost], [50.2, 50.5])
@@ -176,7 +188,7 @@ class HourlySchedulingTests(unittest.IsolatedAsyncioTestCase):
             },
         )
 
-    async def test_retries_entire_backfill_when_middle_day_is_incomplete(self):
+    async def test_publishes_complete_days_when_middle_day_is_incomplete(self):
         today = date(2026, 7, 27)
         incomplete_date = today - timedelta(days=7)
         incomplete_returned = False
@@ -201,7 +213,11 @@ class HourlySchedulingTests(unittest.IsolatedAsyncioTestCase):
         ):
             await coordinator._async_update_data()
             self.assertTrue(coordinator._hourly_backfill_pending)
-            self.assertEqual(coordinator._publish_hourly_statistics.await_count, 0)
+            self.assertEqual(coordinator._publish_hourly_statistics.await_count, 1)
+            self.assertEqual(
+                len(coordinator._publish_hourly_statistics.await_args.args[1]),
+                (HOURLY_USAGE_BACKFILL_DAYS - 1) * 24,
+            )
 
             await coordinator._async_update_data()
 
@@ -210,7 +226,7 @@ class HourlySchedulingTests(unittest.IsolatedAsyncioTestCase):
             coordinator.api.apiClient.get_hourly_usage.await_count,
             HOURLY_USAGE_BACKFILL_DAYS * 2,
         )
-        coordinator._publish_hourly_statistics.assert_awaited_once()
+        self.assertEqual(coordinator._publish_hourly_statistics.await_count, 2)
 
 
 if __name__ == "__main__":

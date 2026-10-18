@@ -165,7 +165,7 @@ class FplMainRegionApiClient:
 
     async def logout(self):
         """Logging out from fpl"""
-        _LOGGER.info("Logging out")
+        _LOGGER.debug("Logging out")
 
         URL_LOGOUT = API_HOST + "/api/resources/logout"
         try:
@@ -224,7 +224,7 @@ class FplMainRegionApiClient:
                     programsData = account_data.get("programs", {}).get("data", [])
 
                     programs = dict()
-                    _LOGGER.info("Getting Programs")
+                    _LOGGER.debug("Getting Programs")
                     for program in programsData:
                         if "enrollmentStatus" in program.keys():
                             key = program["name"]
@@ -297,7 +297,7 @@ class FplMainRegionApiClient:
 
     async def __getBBL_async(self, account, projectedBillData) -> dict:
         """Get budget billing data"""
-        _LOGGER.info("Getting budget billing data")
+        _LOGGER.debug("Getting budget billing data")
         data = {}
 
         headers = {}
@@ -381,7 +381,7 @@ class FplMainRegionApiClient:
         return data
 
     async def get_energy_usage(self, account, premise, lastBilledDate, meterno) -> dict:
-        _LOGGER.info("Getting energy service data")
+        _LOGGER.debug("Getting energy service data")
 
         # Tested using MITM proxy and iOS app.
         # This is the payload and url used by the iOS app.
@@ -483,7 +483,7 @@ class FplMainRegionApiClient:
 
     async def get_hourly_usage(self, account, premise, date) -> list:
         """get data from hourly usage for a specific date"""
-        _LOGGER.info("Getting hourly usage data")
+        _LOGGER.debug("Getting hourly usage data")
 
         URL_APPLIANCE_USAGE = (
             API_HOST
@@ -497,49 +497,64 @@ class FplMainRegionApiClient:
             headers = {}
             if hasattr(self, "jwt_token") and self.jwt_token:
                 headers["jwttoken"] = self.jwt_token
-            async with async_timeout.timeout(TIMEOUT):
-                response = await self.session.post(
-                    URL_APPLIANCE_USAGE,
-                    json=JSON,
-                    headers=headers,
+            response = await self.session.post(
+                URL_APPLIANCE_USAGE,
+                json=JSON,
+                headers=headers,
+                timeout=TIMEOUT,
+            )
+            if response.status != 200:
+                _LOGGER.warning(
+                    "Hourly usage response: account=%s date=%s status=%s",
+                    account,
+                    date,
+                    response.status,
                 )
-                if response.status == 200:
-                    response_json = await response.json()
-                    json_data = response_json.get("data") or {}
-                    hourly_usage_block = json_data.get("HourlyUsage")
-                    if isinstance(hourly_usage_block, list):
-                        hourly_usage = hourly_usage_block
-                    elif isinstance(hourly_usage_block, dict):
-                        hourly_usage = hourly_usage_block.get("data") or []
-                    else:
-                        hourly_usage = []
+            else:
+                response_json = await response.json()
+                json_data = response_json.get("data") or {}
+                hourly_usage_block = json_data.get("HourlyUsage")
+                if isinstance(hourly_usage_block, list):
+                    hourly_usage = hourly_usage_block
+                elif isinstance(hourly_usage_block, dict):
+                    hourly_usage = hourly_usage_block.get("data") or []
+                else:
+                    hourly_usage = []
+                _LOGGER.debug(
+                    "Hourly usage payload: account=%s date=%s data_keys=%s block_type=%s readings=%d",
+                    account,
+                    date,
+                    sorted(json_data.keys()),
+                    type(hourly_usage_block).__name__,
+                    len(hourly_usage),
+                )
 
-                    for hour_usage in hourly_usage:
-                        if not isinstance(hour_usage, dict):
-                            continue
-                        read_time_raw = hour_usage.get("readTime")
-                        if read_time_raw is None:
-                            continue
-                        read_time = datetime.fromisoformat(read_time_raw)
-                        data.append(
-                            {
-                                "hour": hour_usage.get(
-                                    "hour"
-                                ),  # 1 - 24 (Where 1 = from 12AM to 1AM)
-                                "readTime": read_time,  # This is the end of the hour, for example 1AM.
-                                "billingCharged": hour_usage.get("billingCharged"),
-                                "kwhActual": hour_usage["kwhActual"],
-                                "reading": hour_usage["reading"],
-                            }
-                        )
+                for hour_usage in hourly_usage:
+                    if not isinstance(hour_usage, dict):
+                        continue
+                    read_time_raw = hour_usage.get("readTime")
+                    if read_time_raw is None:
+                        continue
+                    read_time = datetime.fromisoformat(read_time_raw)
+                    data.append(
+                        {
+                            "hour": hour_usage.get(
+                                "hour"
+                            ),  # 1 - 24 (Where 1 = from 12AM to 1AM)
+                            "readTime": read_time,  # This is the end of the hour, for example 1AM.
+                            "billingCharged": hour_usage.get("billingCharged"),
+                            "kwhActual": hour_usage["kwhActual"],
+                            "reading": hour_usage["reading"],
+                        }
+                    )
         except Exception as e:
-            _LOGGER.error(e)
+            _LOGGER.error("Hourly usage request failed: %r", e)
 
         return data
 
     async def get_appliance_usage(self, account, premise) -> dict:
         """get data from appliance usage"""
-        _LOGGER.info("Getting appliance usage data")
+        _LOGGER.debug("Getting appliance usage data")
 
         URL_APPLIANCE_USAGE = (
             API_HOST

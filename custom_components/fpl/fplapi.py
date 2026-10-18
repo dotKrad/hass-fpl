@@ -110,7 +110,6 @@ class FplApi:
             for account in accounts:
                 data[account] = await self.apiClient.update(account)
 
-            await self.apiClient.logout()
         return data
 
     async def login(self):
