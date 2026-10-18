@@ -165,7 +165,7 @@ class FplMainRegionApiClient:
 
     async def logout(self):
         """Logging out from fpl"""
-        _LOGGER.info("Logging out")
+        _LOGGER.debug("Logging out")
 
         URL_LOGOUT = API_HOST + "/api/resources/logout"
         try:
@@ -224,7 +224,7 @@ class FplMainRegionApiClient:
                     programsData = account_data.get("programs", {}).get("data", [])
 
                     programs = dict()
-                    _LOGGER.info("Getting Programs")
+                    _LOGGER.debug("Getting Programs")
                     for program in programsData:
                         if "enrollmentStatus" in program.keys():
                             key = program["name"]
@@ -297,7 +297,7 @@ class FplMainRegionApiClient:
 
     async def __getBBL_async(self, account, projectedBillData) -> dict:
         """Get budget billing data"""
-        _LOGGER.info("Getting budget billing data")
+        _LOGGER.debug("Getting budget billing data")
         data = {}
 
         headers = {}
@@ -381,7 +381,7 @@ class FplMainRegionApiClient:
         return data
 
     async def get_energy_usage(self, account, premise, lastBilledDate, meterno) -> dict:
-        _LOGGER.info("Getting energy service data")
+        _LOGGER.debug("Getting energy service data")
 
         # Tested using MITM proxy and iOS app.
         # This is the payload and url used by the iOS app.
@@ -483,7 +483,7 @@ class FplMainRegionApiClient:
 
     async def get_hourly_usage(self, account, premise, date) -> list:
         """get data from hourly usage for a specific date"""
-        _LOGGER.info("Getting hourly usage data")
+        _LOGGER.debug("Getting hourly usage data")
 
         URL_APPLIANCE_USAGE = (
             API_HOST
@@ -554,7 +554,7 @@ class FplMainRegionApiClient:
 
     async def get_appliance_usage(self, account, premise) -> dict:
         """get data from appliance usage"""
-        _LOGGER.info("Getting appliance usage data")
+        _LOGGER.debug("Getting appliance usage data")
 
         URL_APPLIANCE_USAGE = (
             API_HOST

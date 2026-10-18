@@ -6,6 +6,7 @@ from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.components.recorder.models import StatisticMeanType
 from homeassistant.components.recorder.statistics import (
     async_add_external_statistics,
     StatisticData,
@@ -16,6 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.components import recorder
 
 from homeassistant.util import dt as dt_util
+from homeassistant.util.unit_conversion import EnergyConverter
 
 from .fplapi import FplApi
 from .const import DOMAIN, CONF_ACCOUNTS
@@ -119,11 +121,12 @@ class FplDataUpdateCoordinator(DataUpdateCoordinator):
 
         if cost_stats:
             metadata = StatisticMetaData(
-                has_mean=False,
+                mean_type=StatisticMeanType.NONE,
                 has_sum=True,
                 source=DOMAIN,
                 name=f"FPL {account} Hourly Cost",
                 statistic_id=stat_id_cost,
+                unit_class=None,
                 unit_of_measurement="USD",
             )
 
@@ -131,11 +134,12 @@ class FplDataUpdateCoordinator(DataUpdateCoordinator):
 
         if usage_stats:
             metadata = StatisticMetaData(
-                has_mean=False,
+                mean_type=StatisticMeanType.NONE,
                 has_sum=True,
                 source=DOMAIN,
                 name=f"FPL {account} Hourly Usage",
                 statistic_id=stat_id_usage,
+                unit_class=EnergyConverter.UNIT_CLASS,
                 unit_of_measurement="kWh",
             )
 
@@ -199,7 +203,7 @@ class FplDataUpdateCoordinator(DataUpdateCoordinator):
                             )
                             hourly = []
                         elapsed = (dt_util.utcnow() - started).total_seconds()
-                        _LOGGER.info(
+                        _LOGGER.debug(
                             "FPL hourly response: account=%s date=%s readings=%d complete=%s elapsed=%.3fs",
                             account,
                             target_date,

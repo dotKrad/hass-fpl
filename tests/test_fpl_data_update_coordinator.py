@@ -79,14 +79,26 @@ class HourlyPublishingTests(unittest.IsolatedAsyncioTestCase):
         ) as add_statistics:
             await coordinator._publish_hourly_statistics("account", hourly)
 
+        self.assertEqual(len(add_statistics.call_args_list), 2)
+        for call in add_statistics.call_args_list:
+            self.assertIs(
+                call.args[1]["mean_type"], coordinator_module.StatisticMeanType.NONE
+            )
+
         calls_by_id = {
-            call.args[1]["statistic_id"]: call.args[2]
+            call.args[1]["statistic_id"]: call
             for call in add_statistics.call_args_list
         }
         self.assertIn("fpl:account_hourly_usage", calls_by_id)
         self.assertIn("fpl:account_hourly_cost", calls_by_id)
-        usage = calls_by_id["fpl:account_hourly_usage"]
-        cost = calls_by_id["fpl:account_hourly_cost"]
+        usage_metadata = calls_by_id["fpl:account_hourly_usage"].args[1]
+        cost_metadata = calls_by_id["fpl:account_hourly_cost"].args[1]
+        self.assertEqual(
+            usage_metadata["unit_class"], coordinator_module.EnergyConverter.UNIT_CLASS
+        )
+        self.assertIsNone(cost_metadata["unit_class"])
+        usage = calls_by_id["fpl:account_hourly_usage"].args[2]
+        cost = calls_by_id["fpl:account_hourly_cost"].args[2]
         self.assertEqual([row["state"] for row in usage], [2.0, 3.0])
         self.assertEqual([row["sum"] for row in usage], [102.0, 105.0])
         self.assertEqual([row["sum"] for row in cost], [50.2, 50.5])
