@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.5](https://github.com/dotKrad/hass-fpl/compare/v1.1.4...v1.1.5) (2026-10-18)
+
+
+### Bug Fixes
+
+* keep FPL session active for hourly statistics ([32871b8](https://github.com/dotKrad/hass-fpl/commit/32871b81f085844c1062ab05a4a2c55c0b65884d))
+* Restore hourly statistics after logout and incomplete backfill days ([7170bac](https://github.com/dotKrad/hass-fpl/commit/7170bac91f4cefbf3f545b3719849c7af879975c))
+* update hourly statistics metadata ([7d2dda3](https://github.com/dotKrad/hass-fpl/commit/7d2dda360a6daf777a3b92a3e54fb7c45be3652a))
+
 ## [1.1.4](https://github.com/dotKrad/hass-fpl/compare/v1.1.3...v1.1.4) (2026-08-23)
 
 
